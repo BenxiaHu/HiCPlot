@@ -1,0 +1,28 @@
+  package:
+    name: hicplot
+    version: 1.0.0
+  
+  source:
+    url: https://files.pythonhosted.org/packages/66/ce/80ec4b87cecb2220b88872c6609c3a16650af884b17c450aa034f661ca77/hicplot-1.0.0.tar.gz
+    md5: 03f518814406bcb96b74a820bbdd9f24
+
+  build:
+    number: 0
+  
+  requirements:
+    build:
+      - python >=3.12
+      - setuptools
+    run:
+      - python >=3.12
+      - numpy >=1.23
+      - pandas ==1.4.3
+      - pyranges ==0.0.117
+
+
+  about:
+    home: https://github.com/BenxiaHu/HiCPlot
+    license: MIT
+    summary: how to run HiCPlot to plot heatmaps.
+    description: how to run HiCPlot to plot heatmaps.
+    dev_url: https://github.com/BenxiaHu/HiCPlot
