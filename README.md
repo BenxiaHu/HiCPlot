@@ -22,7 +22,10 @@ This tutorial will introduce how to run HiCPlot to plot square and triangle heat
     --output_file "twosamples_heatmap.pdf" \
     --track_size 4 \
     --track_spacing 0.5
-``` 
+```
+**Square Heatmap Example**
+![Square Heatmap](./images/Square_horizontal_heatmap.png)
+![Square Heatmap](./images/Square_vertical_heatmap.png)
 
 the format of input file is cool format.  
 the output file is heatmaps and genome tracks.
@@ -47,6 +50,9 @@ the output file is heatmaps and genome tracks.
     --track_size 4 \
     --track_spacing 0.5
 ``` 
+**Triangle Heatmap Example**
+![Triangle Heatmap](./images/Triangle_horizontal_heatmap.png)
+![Triangle Heatmap](./images/Triangle_horizontal_heatmap.png)
 
 ### Installation 
 #### requirement for installation
