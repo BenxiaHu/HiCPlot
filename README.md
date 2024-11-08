@@ -52,7 +52,7 @@ the output file is heatmaps and genome tracks.
 ``` 
 **Triangle Heatmap Example**
 ![Triangle Heatmap](./images/Triangle_horizontal_heatmap.png)
-![Triangle Heatmap](./images/Triangle_horizontal_heatmap.png)
+![Triangle Heatmap](./images/Triangle_vertical_heatmap.png)
 
 ### Installation 
 #### requirement for installation
