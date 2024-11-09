@@ -1,28 +1,31 @@
-  package:
-    name: hicplot
-    version: 1.0.0
-  
-  source:
-    url: https://files.pythonhosted.org/packages/66/ce/80ec4b87cecb2220b88872c6609c3a16650af884b17c450aa034f661ca77/hicplot-1.0.0.tar.gz
-    md5: 03f518814406bcb96b74a820bbdd9f24
+package:
+  name: hicplot
+  version: 1.0.2
 
+source:
+  url: https://files.pythonhosted.org/packages/98/29/e89ed42d905280d3487cd833179046b1ed0277f6962aeef92d4a95af0f61/hicplot-1.0.2.tar.gz
+  md5: 9185c6eb5641474fa2f0906aef727d29
+
+build:
+  number: 0
+
+requirements:
   build:
-    number: 0
-  
-  requirements:
-    build:
-      - python >=3.12
-      - setuptools
-    run:
-      - python >=3.12
-      - numpy >=1.23
-      - pandas ==1.4.3
-      - pyranges ==0.0.117
+    - python >=3.12
+    - setuptools
+  run:
+    - python >=3.12
+    - numpy =1.26.4
+    - pandas ==1.4.3
+    - matplotlib
+    - pyBigWig
+    - pyranges ==0.0.117
+    - cooler
 
+about:
+  home: https://github.com/BenxiaHu/HiCPlot
+  license: MIT
+  summary: "How to run HiCPlot to plot heatmaps."
+  description: "How to run HiCPlot to plot heatmaps."
+  dev_url: https://github.com/BenxiaHu/HiCPlot
 
-  about:
-    home: https://github.com/BenxiaHu/HiCPlot
-    license: MIT
-    summary: how to run HiCPlot to plot heatmaps.
-    description: how to run HiCPlot to plot heatmaps.
-    dev_url: https://github.com/BenxiaHu/HiCPlot

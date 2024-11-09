@@ -14,7 +14,8 @@ setup(
     url="https://pypi.org/project/HiCPlot/",
     entry_points = {
         "console_scripts": ['TriHeatmap = HiCPlot.TriHeatmap:main',
-                            'SquHeatmap = HiCPlot.SquHeatmap:main',]
+                            'SquHeatmap = HiCPlot.SquHeatmap:main',
+                            'NGStrack= HiCPlot.NGStrack:main',]
         },
     python_requires = '>=3.12',
     packages = ['HiCPlot'],

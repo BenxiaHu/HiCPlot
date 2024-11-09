@@ -18,17 +18,14 @@ the output file is heatmaps and genome tracks.
     --bigwig_labels_sample2 "sample2 RNAseq" \
     --colors_sample2 "green" \
     --gtf_file "gencode.v38.annotation.gtf" \
-    --resolution 10000 --chrid "chr2" --start 1120000 --end 1320000 \
+    --resolution 10000 --chrid "chr16" --start 67500000 --end 67700000 \
     --cmap "autumn_r" --layout 'horizontal' \
-    --output_file "twosamples_heatmap.pdf" \
+    --output_file "Square_horizontal_heatmap.pdf" \
     --track_size 4 \
     --track_spacing 0.5
 ```
 **Square and Horizontal Heatmap**  
 ![Square and Horizontal Heatmap](./images/Square_horizontal_heatmap.png)
-
-**Square and Vertical Heatmap**  
-![Square and Vertical Heatmap](./images/Square_vertical_heatmap.png)
 
 
 #### plot triangle heatmaps for individual/two Hi-C contact matrices
@@ -45,9 +42,9 @@ the output file is heatmaps and genome tracks.
     --bigwig_labels_sample2 "sample2 RNAseq" \
     --colors_sample2 "green" \
     --gtf_file "gencode.v38.annotation.gtf" \
-    --resolution 10000 --chrid "chr2" --start 1120000 --end 1320000 \
+    --resolution 10000 --chrid "chr16" --start 67500000 --end 67700000 \
     --cmap "autumn_r" --layout 'horizontal' \
-    --output_file "twosamples_heatmap.pdf" \
+    --output_file "Triangle_horizontal_heatmap.pdf" \
     --track_width 4 \
     --track_height 1.5 \
     --track_spacing 0.5
@@ -55,11 +52,30 @@ the output file is heatmaps and genome tracks.
 **Triangle and Horizontal Heatmap**  
 ![Triangle and Horizontal Heatmap](./images/Triangle_horizontal_heatmap.png)
 
-**Triangle and Vertical Heatmap**  
-![Triangle and Vertical Heatmap](./images/Triangle_vertical_heatmap.png)
+#### plot genomic tracks based on bigwig files
+#### usage: 
+``` 
+    NGStrack \
+    --chrid "chr16" --start 67500000 --end 67700000 \
+    --layout 'horizontal' \
+    --track_width 4 \
+    --track_height 1.5 \
+    --track_spacing 0.5 \
+    --bigwig_files_sample1 "/data/bxhu/project/ZZL/RNAseq/bam/bw/HethVEH_10bp.bw" \
+    --bigwig_labels_sample1 "sample1 RNAseq" \
+    --colors_sample1 "red" \
+    --bigwig_files_sample2 "/data/bxhu/project/ZZL/RNAseq/bam/bw/SCAVEH_10bp.bw" \
+    --bigwig_labels_sample2 "sample2 RNAseq" \
+    --colors_sample2 "green" \
+    --gtf_file "/data/bxhu/project/database/hg38/gencode.v38.annotation.gtf" \
+    --output_file "track_horizontal.pdf"
+```
+**Horizontal Track**  
+![Horizontal track](./images/track_horizontal.png)
+
 
 ### Installation 
-#### requirement for installation
+#### requirement for installation  
 python>=3.12  
 numpy  
 pandas  
@@ -69,7 +85,7 @@ matplotlib
 pyBigWig  
 pyranges  
 
-#### pip install HiCPlot==1.0.1
-https://pypi.org/project/HiCPlot/1.0.1/  
+#### pip install HiCPlot==1.0.2
+https://pypi.org/project/HiCPlot/1.0.2/  
 
 
