@@ -1,5 +1,4 @@
 # HiCPlot  
-This tutorial will introduce how to run HiCPlot to plot square and triangle heatmaps from Hi-C matrices and tracks from bigwig files.
 
 ### HiCPlot can be used to plot square and triangle heatmaps from Hi-C matrices and tracks from bigwig files.  
 
@@ -23,9 +22,10 @@ This tutorial will introduce how to run HiCPlot to plot square and triangle heat
     --track_size 4 \
     --track_spacing 0.5
 ```
-**Square Heatmap Example**
-![Square Heatmap](./images/Square_horizontal_heatmap.png)
-![Square Heatmap](./images/Square_vertical_heatmap.png)
+**Square and Horizontal Heatmap**
+![Square and Horizontal Heatmap](./images/Square_horizontal_heatmap.png)
+**Square and Horizontal Heatmap**
+![Square and Vertical Heatmap](./images/Square_vertical_heatmap.png)
 
 the format of input file is cool format.  
 the output file is heatmaps and genome tracks.
@@ -47,12 +47,14 @@ the output file is heatmaps and genome tracks.
     --resolution 10000 --chrid "chr2" --start 1120000 --end 1320000 \
     --cmap "autumn_r" --layout 'horizontal' \
     --output_file "twosamples_heatmap.pdf" \
-    --track_size 4 \
+    --track_width 4 \
+    --track_height 1.5 \
     --track_spacing 0.5
 ``` 
-**Triangle Heatmap Example**
-![Triangle Heatmap](./images/Triangle_horizontal_heatmap.png)
-![Triangle Heatmap](./images/Triangle_vertical_heatmap.png)
+**Triangle and Horizontal Heatmap**
+![Triangle and Horizontal Heatmap](./images/Triangle_horizontal_heatmap.png)
+**Triangle and Vertical Heatmap**
+![Triangle and Vertical Heatmap](./images/Triangle_vertical_heatmap.png)
 
 ### Installation 
 #### requirement for installation
