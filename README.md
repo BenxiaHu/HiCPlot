@@ -22,10 +22,10 @@
     --track_size 4 \
     --track_spacing 0.5
 ```
-**Square and Horizontal Heatmap**
+**Square and Horizontal Heatmap**  
 ![Square and Horizontal Heatmap](./images/Square_horizontal_heatmap.png)
 
-**Square and Horizontal Heatmap**
+**Square and Vertical Heatmap**  
 ![Square and Vertical Heatmap](./images/Square_vertical_heatmap.png)
 
 the format of input file is cool format.  
@@ -52,10 +52,10 @@ the output file is heatmaps and genome tracks.
     --track_height 1.5 \
     --track_spacing 0.5
 ``` 
-**Triangle and Horizontal Heatmap**
+**Triangle and Horizontal Heatmap**  
 ![Triangle and Horizontal Heatmap](./images/Triangle_horizontal_heatmap.png)
 
-**Triangle and Vertical Heatmap**
+**Triangle and Vertical Heatmap**  
 ![Triangle and Vertical Heatmap](./images/Triangle_vertical_heatmap.png)
 
 ### Installation 
