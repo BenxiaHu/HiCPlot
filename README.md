@@ -3,6 +3,8 @@
 ### HiCPlot can be used to plot square and triangle heatmaps from Hi-C matrices and tracks from bigwig files.  
 
 #### plot square heatmaps for individual/two Hi-C contact matrices
+the format of input file is cool format.  
+the output file is heatmaps and genome tracks.  
 #### usage:
 ``` 
     SquHeatmap \
@@ -28,8 +30,6 @@
 **Square and Vertical Heatmap**  
 ![Square and Vertical Heatmap](./images/Square_vertical_heatmap.png)
 
-the format of input file is cool format.  
-the output file is heatmaps and genome tracks.
 
 #### plot triangle heatmaps for individual/two Hi-C contact matrices
 #### usage: 
@@ -60,14 +60,14 @@ the output file is heatmaps and genome tracks.
 
 ### Installation 
 #### requirement for installation
-python>=3.12 
+python>=3.12  
 numpy  
 pandas  
 argparse  
-cooler
-matplotlib
-pyBigWig
-pyranges
+cooler  
+matplotlib  
+pyBigWig  
+pyranges  
 itertools
 
 #### pip install HiCPlot==1.0.1
