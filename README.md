@@ -24,6 +24,7 @@
 ```
 **Square and Horizontal Heatmap**
 ![Square and Horizontal Heatmap](./images/Square_horizontal_heatmap.png)
+
 **Square and Horizontal Heatmap**
 ![Square and Vertical Heatmap](./images/Square_vertical_heatmap.png)
 
@@ -53,6 +54,7 @@ the output file is heatmaps and genome tracks.
 ``` 
 **Triangle and Horizontal Heatmap**
 ![Triangle and Horizontal Heatmap](./images/Triangle_horizontal_heatmap.png)
+
 **Triangle and Vertical Heatmap**
 ![Triangle and Vertical Heatmap](./images/Triangle_vertical_heatmap.png)
 
