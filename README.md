@@ -68,7 +68,6 @@ cooler
 matplotlib  
 pyBigWig  
 pyranges  
-itertools
 
 #### pip install HiCPlot==1.0.1
 https://pypi.org/project/HiCPlot/1.0.1/  
