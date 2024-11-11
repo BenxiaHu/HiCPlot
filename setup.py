@@ -15,7 +15,8 @@ setup(
     entry_points = {
         "console_scripts": ['TriHeatmap = HiCPlot.TriHeatmap:main',
                             'SquHeatmap = HiCPlot.SquHeatmap:main',
-                            'NGStrack= HiCPlot.NGStrack:main',]
+                            'NGStrack= HiCPlot.NGStrack:main',
+                            'DiffSquHeatmap= HiCPlot.DiffSquHeatmap:main']
         },
     python_requires = '>=3.12',
     packages = ['HiCPlot'],

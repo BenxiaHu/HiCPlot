@@ -2,7 +2,6 @@
 import argparse
 import os
 import pandas as pd
-from matplotlib.colors import LogNorm
 import pyBigWig
 import pyranges as pr
 import numpy as np
@@ -11,13 +10,24 @@ import cooler
 from matplotlib.ticker import EngFormatter
 import itertools
 import matplotlib.gridspec as gridspec
+import matplotlib.colors as mcolors
 
 dir = os.path.dirname(os.path.abspath(__file__))
 version_py = os.path.join(dir, "_version.py")
 exec(open(version_py).read())
 
 def plot_genes(ax, gtf_file, region, color='blue', track_height=1):
-    spacing_factor=1.5
+    """
+    Plot gene annotations on the provided axis.
+
+    Parameters:
+    - ax: Matplotlib axis to plot on.
+    - gtf_file: Path to the GTF file.
+    - region: Tuple containing (chromosome, start, end).
+    - color: Color for gene annotations.
+    - track_height: Height of each gene track.
+    """
+    spacing_factor = 1.5
     chrom, start, end = region
     # Load the GTF file using pyranges
     gtf = pr.read_gtf(gtf_file)
@@ -84,7 +94,17 @@ def plot_genes(ax, gtf_file, region, color='blue', track_height=1):
     ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, pos: f'{x / 1e6:.2f}'))
 
 def read_bigwig(file_path, region):
-    """Read BigWig or bedGraph file and return positions and values."""
+    """
+    Read BigWig or bedGraph file and return positions and values.
+
+    Parameters:
+    - file_path: Path to the BigWig or bedGraph file.
+    - region: Tuple containing (chromosome, start, end).
+
+    Returns:
+    - positions: Numpy array of positions.
+    - values: Numpy array of values.
+    """
     chrom, start, end = region
     file_extension = os.path.splitext(file_path)[1].lower()
 
@@ -123,6 +143,18 @@ def read_bigwig(file_path, region):
     return positions, values
 
 def get_track_min_max(bigwig_files_sample1, bigwig_files_sample2, layoutid, region):
+    """
+    Compute the minimum and maximum values for BigWig tracks to ensure consistent y-axis scaling.
+
+    Parameters:
+    - bigwig_files_sample1: List of BigWig files for sample 1.
+    - bigwig_files_sample2: List of BigWig files for sample 2.
+    - layoutid: Layout type ('horizontal' or 'vertical').
+    - region: Tuple containing (chromosome, start, end).
+
+    Returns:
+    - min_max_list: List of tuples containing (min, max) for each track.
+    """
     if layoutid == "horizontal":
         max_num_tracks = max(len(bigwig_files_sample1), len(bigwig_files_sample2))
     elif layoutid == "vertical":
@@ -186,7 +218,17 @@ def get_track_min_max(bigwig_files_sample1, bigwig_files_sample2, layoutid, regi
     return min_max_list
 
 def plot_seq(ax, file_path, region, color='blue', y_min=None, y_max=None):
-    """Plot RNA-seq/ChIP-seq expression from BigWig or bedGraph file on given axis."""
+    """
+    Plot RNA-seq/ChIP-seq expression from BigWig or bedGraph file on the given axis.
+
+    Parameters:
+    - ax: Matplotlib axis to plot on.
+    - file_path: Path to the BigWig or bedGraph file.
+    - region: Tuple containing (chromosome, start, end).
+    - color: Color for the plot.
+    - y_min: Minimum y-axis value.
+    - y_max: Maximum y-axis value.
+    """
     chrom, start, end = region
     file_extension = os.path.splitext(file_path)[1].lower()
 
@@ -237,7 +279,16 @@ def plot_seq(ax, file_path, region, color='blue', y_min=None, y_max=None):
     ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, pos: f'{x / 1e6:.2f}'))
 
 def plot_bed(ax, bed_file, region, color='green', label=None):
-    """Plot BED regions as rectangles on the given axis."""
+    """
+    Plot BED regions as rectangles on the given axis.
+
+    Parameters:
+    - ax: Matplotlib axis to plot on.
+    - bed_file: Path to the BED file.
+    - region: Tuple containing (chromosome, start, end).
+    - color: Color for the BED regions.
+    - label: Label for the BED track.
+    """
     chrom, start, end = region
     # Read BED file using pandas
     bed_df = pd.read_csv(bed_file, sep='\t', header=None, comment='#', 
@@ -272,8 +323,38 @@ def plot_bed(ax, bed_file, region, color='green', label=None):
     if label:
         ax.set_title(label, fontsize=8)
 
-    # Function to plot triangle heatmaps
-def pcolormesh_triangle(ax, matrix, start=0, resolution=1, norm=None, cmap='autumn_r', *args, **kwargs):
+def get_bed_max(bed_files_sample1, bed_files_sample2, layout, region):
+    """
+    Compute a constant y_max for BED tracks since they are binary.
+
+    Parameters:
+    - bed_files_sample1: List of BED files for sample 1.
+    - bed_files_sample2: List of BED files for sample 2.
+    - layout: Layout type ('horizontal' or 'vertical').
+    - region: Tuple containing (chromosome, start, end).
+
+    Returns:
+    - List of y_max values for BED tracks.
+    """
+    if layout == "horizontal":
+        return [1] * max(len(bed_files_sample1), len(bed_files_sample2)) if (bed_files_sample1 or bed_files_sample2) else []
+    elif layout == "vertical":
+        return [1] * (len(bed_files_sample1) + len(bed_files_sample2)) if (bed_files_sample1 or bed_files_sample2) else []
+    else:
+        return []
+
+def pcolormesh_triangle(ax, matrix, start=0, resolution=1, vmin=None, vmax=None, cmap='autumn_r', *args, **kwargs):
+    """
+    Plot the Hi-C matrix as a triangular heatmap on the given axis.
+
+    Parameters:
+    - ax: Matplotlib axis to plot on.
+    - matrix: Hi-C contact matrix.
+    - start: Start position for the x-axis.
+    - resolution: Resolution of the Hi-C matrix.
+    - norm: Normalization instance for color scaling.
+    - cmap: Colormap for the heatmap.
+    """
     n = matrix.shape[0]
     # Triangle orientation
     start_pos_vector = [start + resolution * i for i in range(len(matrix) + 1)]
@@ -282,7 +363,7 @@ def pcolormesh_triangle(ax, matrix, start=0, resolution=1, norm=None, cmap='autu
             np.array([(i[1], i[0]) for i in itertools.product(start_pos_vector[::-1], start_pos_vector)]),
             t)
     x, y = matrix_a[:, 1].reshape(n + 1, n + 1), matrix_a[:, 0].reshape(n + 1, n + 1)
-    im = ax.pcolormesh(x, y, np.flipud(matrix), norm=norm, cmap=cmap, *args, **kwargs)
+    im = ax.pcolormesh(x, y, np.flipud(matrix), vmin=vmin, vmax=vmax, cmap=cmap, *args, **kwargs)
     ax.yaxis.set_visible(False)
     im.set_rasterized(True)
     return im
@@ -294,13 +375,20 @@ def plot_heatmaps(cooler_file1, sampleid1,
                  cooler_file2=None, sampleid2=None,
                  bigwig_files_sample2=[], bigwig_labels_sample2=[], colors_sample2=[],
                  bed_files_sample2=[], bed_labels_sample2=[], bed_colors_sample2=[],
-                 resolution,
-                 start, end, chrid,
+                 resolution=10000,
+                 start=10500000, end=13200000, chrid="chr2",
                  cmap='autumn_r', vmin=None, vmax=None,
                  output_file='comparison_heatmap.pdf', layout='horizontal',
-                 track_width=10, track_height=1, track_spacing=0.5):
+                 track_width=10, track_height=1, track_spacing=0.5,
+                 normalization_method='raw'):  # Added normalization_method
+    """
+    Plot Hi-C heatmaps along with BigWig, BED, and gene annotations.
+
+    Parameters:
+    - All parameters correspond to command-line arguments.
+    """
     plt.rcParams['font.size'] = 8
-    track_spacing = track_spacing *1.2
+    track_spacing = track_spacing * 1.2
     # Define a small height for the colorbar
     small_colorbar_height = 0.1  # Adjust this value to make the colorbar height small
     # Set parameters
@@ -313,25 +401,55 @@ def plot_heatmaps(cooler_file1, sampleid1,
     if not single_sample:
         clr2 = cooler.Cooler(f'{cooler_file2}::resolutions/{resolution}')
         data2 = clr2.matrix(balance=True).fetch(region)
-    # Determine normalization
-    if not single_sample and vmin is None and vmax is None:
-        # Compute global min and max across both samples
-        combined_data = np.concatenate([data1.flatten(), data2.flatten()])
-        combined_data = combined_data[~np.isnan(combined_data)]  # Remove NaNs
-        if len(combined_data) == 0:
-            raise ValueError("No valid data found in both samples for normalization.")
-        global_min = combined_data.min()
-        global_max = combined_data.max()
-        norm = LogNorm(vmin=global_min, vmax=global_max)
+    # Apply normalization to Hi-C matrices
+    if normalization_method == 'raw':
+        normalized_data1 = data1
+        normalized_data2 = data2 if not single_sample else None
+    elif normalization_method == 'log2':
+        normalized_data1 = np.log2(np.maximum(data1, 1e-10))
+        if not single_sample:
+            normalized_data2 = np.log2(np.maximum(data2, 1e-10))
+    elif normalization_method == 'log2_add1':
+        normalized_data1 = np.log2(data1 + 1)
+        if not single_sample:
+            normalized_data2 = np.log2(data2 + 1)
+    elif normalization_method == 'log':
+        normalized_data1 = np.log(np.maximum(data1, 1e-10))
+        if not single_sample:
+            normalized_data2 = np.log(np.maximum(data2, 1e-10))
+    elif normalization_method == 'log_add1':
+        normalized_data1 = np.log(data1 + 1)
+        if not single_sample:
+            normalized_data2 = np.log(data2 + 1)
     else:
-        norm = LogNorm(vmin=vmin, vmax=vmax)
-
-    # Define normalization for sample1 and sample2
-    norm1 = norm
-    norm2 = norm if not single_sample else None
-
+        raise ValueError(f"Unsupported normalization method: {normalization_method}")
+    
+    # Determine vmin and vmax if not provided
+    if vmin is None and vmax is None:
+        if single_sample:
+            global_min = np.nanmin(normalized_data1)
+            global_max = np.nanmax(normalized_data1)
+        else:
+            global_min = min(np.nanmin(normalized_data1), np.nanmin(normalized_data2))
+            global_max = max(np.nanmax(normalized_data1), np.nanmax(normalized_data2))
+        vmin = global_min
+        vmax = global_max
+    elif vmin is None:
+        if normalization_method.startswith('log'):
+            vmin = np.nanmin(normalized_data1)
+        else:
+            vmin = 0  # For raw data
+    elif vmax is None:
+        if normalization_method.startswith('log'):
+            vmax = np.nanmax(normalized_data1)
+        else:
+            vmax = np.nanmax(normalized_data1)
+    
+    # Define normalization for color mapping
+    #norm = Normalize(vmin=vmin, vmax=vmax)
+    
     # Formatter for big positions
-    bp_formatter = EngFormatter('b')
+    bp_formatter = EngFormatter()
     def format_ticks(ax, x=True, y=True, rotate=True):
         def format_million(x, pos):
             return f'{x / 1e6:.2f}'
@@ -342,49 +460,47 @@ def plot_heatmaps(cooler_file1, sampleid1,
             ax.xaxis.tick_bottom()
         if rotate:
             ax.tick_params(axis='x', rotation=45)
-
+    
     if layout == 'horizontal':
         # Determine the number of tracks
         num_genes = 1 if gtf_file else 0
         ncols = 1 if single_sample else 2
         # Calculate the maximum number of BigWig and BED tracks per sample
-        max_bigwig_sample = max(len(bigwig_files_sample1), len(bigwig_files_sample2))
-        max_bed_sample = max(len(bed_files_sample1), len(bed_files_sample2))
-        max_bigwig_bed_tracks = max_bigwig_sample + max_bed_sample
+        max_bigwig_sample = max(len(bigwig_files_sample1), len(bigwig_files_sample2)) if not single_sample else len(bigwig_files_sample1)
+        max_bed_sample = max(len(bed_files_sample1), len(bed_files_sample2)) if not single_sample else len(bed_files_sample1)
+        max_bigwig_bed_tracks = max(max_bigwig_sample, max_bed_sample) if not single_sample else max(len(bigwig_files_sample1), len(bed_files_sample1))
+        
         # Total rows:
         # Row0: Heatmaps
         # Row1: Colorbars
         # Rows2 to (2 + max_bigwig_bed_tracks -1): BigWig and BED tracks
         # Last row: Genes (optional)
-        max_cool_sample = 1
-        num_colorbars = 1
-        num_rows = max_cool_sample + num_colorbars +max_bigwig_bed_tracks + num_genes
+        num_rows = 2 + max_bigwig_bed_tracks + num_genes
+        
         # Define height ratios
-        height_ratios = [track_height] * max_cool_sample + [small_colorbar_height] + \
-                        [track_height] * max_bigwig_bed_tracks + \
-                        [track_height] * num_genes
+        height_ratios = [1, small_colorbar_height] + [0.5] * max_bigwig_bed_tracks + [0.5] * num_genes
         # Initialize GridSpec
-        gs = gridspec.GridSpec(num_rows, ncols, height_ratios=height_ratios, hspace=track_spacing/(track_height))
+        gs = gridspec.GridSpec(num_rows, ncols, height_ratios=height_ratios, hspace=0.5, wspace=0.3)
         # Define default figsize
-        width = track_width * ncols
-        height = (track_height * num_rows) #+ (track_spacing * (num_rows - 1)) + small_colorbar_height
-        figsize = (width, height)
+        figsize_width = track_width * ncols + (ncols -1)*track_spacing
+        figsize_height = sum(height_ratios) * track_height + (num_rows -1)*track_spacing
         # Initialize figure
-        f = plt.figure(figsize=figsize)
+        f = plt.figure(figsize=(figsize_width, figsize_height))
+        
         # Plot Heatmaps
         ax_heatmap1 = f.add_subplot(gs[0, 0])
-        im1 = pcolormesh_triangle(ax_heatmap1, data1, start=region[1], resolution=resolution, norm=norm1, cmap=cmap)
+        im1 = pcolormesh_triangle(ax_heatmap1, normalized_data1, start=region[1], resolution=resolution, vmin=vmin, vmax=vmax, cmap=cmap)
         ax_heatmap1.set_aspect('auto')
-        ax_heatmap1.set_ylim(0, data1.shape[0] * resolution)
+        ax_heatmap1.set_ylim(0, normalized_data1.shape[0] * resolution)
         ax_heatmap1.set_xlim(start, end)
         format_ticks(ax_heatmap1, rotate=False)
         ax_heatmap1.set_title(sampleid1, fontsize=8)
         
         if not single_sample:
             ax_heatmap2 = f.add_subplot(gs[0, 1])
-            im2 = pcolormesh_triangle(ax_heatmap2, data2, start=region[1], resolution=resolution, norm=norm2, cmap=cmap)
+            im2 = pcolormesh_triangle(ax_heatmap2, normalized_data2, start=region[1], resolution=resolution, vmin=vmin, vmax=vmax, cmap=cmap)
             ax_heatmap2.set_aspect('auto')
-            ax_heatmap2.set_ylim(0, data2.shape[0] * resolution)
+            ax_heatmap2.set_ylim(0, normalized_data2.shape[0] * resolution)
             ax_heatmap2.set_xlim(start, end)
             format_ticks(ax_heatmap2, rotate=False)
             ax_heatmap2.set_title(sampleid2, fontsize=8)
@@ -392,28 +508,38 @@ def plot_heatmaps(cooler_file1, sampleid1,
         # Create colorbars
         if not single_sample:
             # Colorbar for Sample1
-            cax1 = f.add_subplot(gs[max_cool_sample, 0])
-            sm1 = plt.cm.ScalarMappable(cmap=cmap, norm=norm1)
-            sm1.set_array([])
-            cbar1 = f.colorbar(sm1, cax=cax1, orientation='horizontal')
+            cax1 = f.add_subplot(gs[1, 0])
+            cbar1 = plt.colorbar(im1, cax=cax1, orientation='horizontal')
+            cbar1.ax.tick_params(labelsize=8)
+            cax1.xaxis.set_label_position('bottom')
+            cax1.xaxis.set_ticks_position('bottom')
+            cbar1.set_label(normalization_method, labelpad=3)
+            cbar1.ax.xaxis.set_label_position('top')
             # Colorbar for Sample2
-            cax2 = f.add_subplot(gs[max_cool_sample, 1])
-            sm2 = plt.cm.ScalarMappable(cmap=cmap, norm=norm2)
-            sm2.set_array([])
-            cbar2 = f.colorbar(sm2, cax=cax2, orientation='horizontal')
+            cax2 = f.add_subplot(gs[1, 1])
+            cbar2 = plt.colorbar(im2, cax=cax2, orientation='horizontal')
+            cbar2.ax.tick_params(labelsize=8)
+            cax2.xaxis.set_label_position('bottom')
+            cax2.xaxis.set_ticks_position('bottom')
+            cbar2.set_label(normalization_method, labelpad=3)
+            cbar2.ax.xaxis.set_label_position('top')
         else:
             # Single colorbar if only one sample
-            cax = f.add_subplot(gs[max_cool_sample, 0])
-            sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm1)
-            sm.set_array([])
-            cbar = f.colorbar(sm, cax=cax, orientation='horizontal')
-        
+            cax1 = f.add_subplot(gs[1, 0])
+            cbar1 = plt.colorbar(im1, cax=cax1, orientation='horizontal')
+            cbar1.ax.tick_params(labelsize=8)
+            cax1.xaxis.set_label_position('bottom')
+            cax1.xaxis.set_ticks_position('bottom')
+            cbar1.set_label(normalization_method, labelpad=3)
+            cbar1.ax.xaxis.set_label_position('top')
         # Compute y_max_list for BigWig tracks
         y_min_max_list_bigwig = get_track_min_max(bigwig_files_sample1, bigwig_files_sample2, layout, region) if (bigwig_files_sample1 or bigwig_files_sample2) else []
-       
+        # For BED tracks, y_max is always 1
+        y_max_list_bed = get_bed_max(bed_files_sample1, bed_files_sample2, layout, region) if (bed_files_sample1 or bed_files_sample2) else []
+        
         # Plot BigWig and BED tracks
-        track_start_row = max_cool_sample + 1
-        # Sample1 BigWig
+        track_start_row = 2
+        # Plot BigWig tracks for Sample1
         if len(bigwig_files_sample1):
             for i in range(len(bigwig_files_sample1)):
                 ax_bw = f.add_subplot(gs[track_start_row + i, 0])
@@ -422,9 +548,8 @@ def plot_heatmaps(cooler_file1, sampleid1,
                 ax_bw.set_title(f"{bigwig_labels_sample1[i]} ({sampleid1})", fontsize=8)
                 ax_bw.set_xlim(start, end)
                 ax_bw.set_ylim(y_min_max_list_bigwig[i][0], y_min_max_list_bigwig[i][1] * 1.1)
-        track_start_row = max_cool_sample + 1
-        # Sample2 BigWig
-        if len(bigwig_files_sample2):
+        # Plot BigWig tracks for Sample2 if provided
+        if not single_sample and len(bigwig_files_sample2):
             for j in range(len(bigwig_files_sample2)):
                 ax_bw = f.add_subplot(gs[track_start_row + j, 1])
                 plot_seq(ax_bw, bigwig_files_sample2[j], region, color=colors_sample2[j], 
@@ -432,23 +557,22 @@ def plot_heatmaps(cooler_file1, sampleid1,
                 ax_bw.set_title(f"{bigwig_labels_sample2[j]} ({sampleid2})", fontsize=8)
                 ax_bw.set_xlim(start, end)
                 ax_bw.set_ylim(y_min_max_list_bigwig[j][0], y_min_max_list_bigwig[j][1] * 1.1)
-        track_start_row = max_cool_sample + 1 + len(bigwig_files_sample1)
-        # Sample1 BED
+        # Plot BED tracks for Sample1
+        bed_start_row = track_start_row + len(bigwig_files_sample1)
         if len(bed_files_sample1):
             for k in range(len(bed_files_sample1)):
-                    ax_bed = f.add_subplot(gs[track_start_row + k, 0])
-                    plot_bed(ax_bed, bed_files_sample1[k], region, color=bed_colors_sample1[k], label=bed_labels_sample1[k])
-                    ax_bed.set_title(f"{bed_labels_sample1[k]} ({sampleid1})", fontsize=8)
-        track_start_row = max_cool_sample + 1 + len(bigwig_files_sample1)
-        # Sample2 BED
-        if len(bed_files_sample2):
+                ax_bed = f.add_subplot(gs[bed_start_row + k, 0])
+                plot_bed(ax_bed, bed_files_sample1[k], region, color=bed_colors_sample1[k], label=bed_labels_sample1[k])
+                ax_bed.set_title(f"{bed_labels_sample1[k]} ({sampleid1})", fontsize=8)
+        # Plot BED tracks for Sample2 if provided
+        if not single_sample and len(bed_files_sample2):
             for l in range(len(bed_files_sample2)):
-                    ax_bed = f.add_subplot(gs[track_start_row + l, 1])
-                    plot_bed(ax_bed, bed_files_sample2[l], region, color=bed_colors_sample2[l], label=bed_labels_sample2[l])
-                    ax_bed.set_title(f"{bed_labels_sample2[l]} ({sampleid2})", fontsize=8)
+                ax_bed = f.add_subplot(gs[bed_start_row + l, 1])
+                plot_bed(ax_bed, bed_files_sample2[l], region, color=bed_colors_sample2[l], label=bed_labels_sample2[l])
+                ax_bed.set_title(f"{bed_labels_sample2[l]} ({sampleid2})", fontsize=8)
         # Plot Genes if GTF file is provided
         if gtf_file:
-            gene_row = max_cool_sample + 1 + max_bigwig_bed_tracks
+            gene_row = 2 + max_bigwig_bed_tracks
             ax_genes = f.add_subplot(gs[gene_row, 0])
             plot_genes(ax_genes, gtf_file, region, track_height=track_height)
             ax_genes.set_xlim(start, end)
@@ -488,40 +612,41 @@ def plot_heatmaps(cooler_file1, sampleid1,
                         [track_height] * max_tracks + \
                         [track_height] * num_genes
         # Initialize GridSpec
-        gs = gridspec.GridSpec(num_rows, ncols, height_ratios=height_ratios, hspace=track_spacing/(track_height))
+        gs = gridspec.GridSpec(num_rows, ncols, height_ratios=height_ratios, hspace=0.5)
         # Define default figsize
         width = track_width * ncols
-        height = (track_height * num_rows) + small_colorbar_height #+ (track_spacing * (num_rows - 1)) 
+        height = (track_height * num_rows) + small_colorbar_height
         figsize = (width, height)
         # Initialize figure
         f = plt.figure(figsize=figsize)
         # Plot Heatmaps
         ax_heatmap1 = f.add_subplot(gs[0, 0])
-        im1 = pcolormesh_triangle(ax_heatmap1, data1, start=region[1], resolution=resolution, norm=norm1, cmap=cmap)
+        im1 = pcolormesh_triangle(ax_heatmap1, normalized_data1, start=region[1], resolution=resolution, vmin=vmin, vmax=vmax,cmap=cmap)
         ax_heatmap1.set_aspect('auto')
-        ax_heatmap1.set_ylim(0, data1.shape[0] * resolution)
+        ax_heatmap1.set_ylim(0, normalized_data1.shape[0] * resolution)
         ax_heatmap1.set_xlim(start, end)
         format_ticks(ax_heatmap1, rotate=False)
         ax_heatmap1.set_title(sampleid1, fontsize=8)
         
         if not single_sample:
             ax_heatmap2 = f.add_subplot(gs[1, 0])
-            im2 = pcolormesh_triangle(ax_heatmap2, data2, start=region[1], resolution=resolution, norm=norm2, cmap=cmap)
+            im2 = pcolormesh_triangle(ax_heatmap2, normalized_data2, start=region[1], resolution=resolution, vmin=vmin, vmax=vmax,cmap=cmap)
             ax_heatmap2.set_aspect('auto')
-            ax_heatmap2.set_ylim(0, data2.shape[0] * resolution)
+            ax_heatmap2.set_ylim(0, normalized_data2.shape[0] * resolution)
             ax_heatmap2.set_xlim(start, end)
             format_ticks(ax_heatmap2, rotate=False)
             ax_heatmap2.set_title(sampleid2, fontsize=8)
         
         # Create a single colorbar for vertical layout
         cax = f.add_subplot(gs[max_cool_sample, 0])
-        # Use the first sample's normalization for the colorbar
-        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm1)
-        sm.set_array([])
-        cbar = plt.colorbar(sm, cax=cax, orientation='horizontal')
-        
+        cbar = plt.colorbar(im1, cax=cax, orientation='horizontal')
+        cbar.ax.tick_params(labelsize=8)
+        cbar.set_label(normalization_method, labelpad=3)  # Set the label above
+        cbar.ax.xaxis.set_label_position('top')
         # Compute y_max_list for BigWig tracks
         y_min_max_list_bigwig = get_track_min_max(bigwig_files_sample1, bigwig_files_sample2, layout, region) if (bigwig_files_sample1 or bigwig_files_sample2) else []
+        # For BED tracks, y_max is always 1
+        y_max_list_bed = get_bed_max(bed_files_sample1, bed_files_sample2, layout, region) if (bed_files_sample1 or bed_files_sample2) else []
         
         # Plot BigWig and BED tracks
         # Sample1 BigWig
@@ -567,7 +692,6 @@ def plot_heatmaps(cooler_file1, sampleid1,
     else:
         raise ValueError("Invalid layout option. Use 'horizontal' or 'vertical'.")
     
-    #plt.figtext(0.5, 0.02, "Position (Mb)", ha="center", fontsize=8)
     # Adjust layout
     plt.subplots_adjust(left=0.1, right=0.95, top=0.95, bottom=0.1)
     # Save the figure
@@ -575,16 +699,19 @@ def plot_heatmaps(cooler_file1, sampleid1,
     plt.close(f)
 
 def main():
+    """
+    Main function to parse command-line arguments and initiate plotting.
+    """
     parser = argparse.ArgumentParser(description='Plot triangle heatmaps from cooler files with optional BigWig, BED, and GTF annotations.')
     # Required Hi-C matrix
     parser.add_argument('--cooler_file1', type=str, required=True, help='Path to the first .mcool file.')
     # Optional second Hi-C matrix
     parser.add_argument('--cooler_file2', type=str, required=False, help='Path to the second .mcool file.', default=None)
     # Resolution and genomic region
-    parser.add_argument('--resolution', type=int, required=True, help='Resolution for the cooler data.')
-    parser.add_argument('--start', type=int, required=True, help='Start position for the region of interest.')
-    parser.add_argument('--end', type=int, required=True, help='End position for the region of interest.')
-    parser.add_argument('--chrid', type=str, required=True, help='Chromosome ID.')
+    parser.add_argument('--resolution', type=int, default=10000, help='Resolution for the cooler data.')
+    parser.add_argument('--start', type=int, default=10500000, help='Start position for the region of interest.')
+    parser.add_argument('--end', type=int, default=13200000, help='End position for the region of interest.')
+    parser.add_argument('--chrid', type=str, default='chr2', help='Chromosome ID.')
     # Visualization parameters
     parser.add_argument('--cmap', type=str, default='autumn_r', help='Colormap to be used for plotting.')
     parser.add_argument('--vmin', type=float, default=None, help='Minimum value for LogNorm scaling.')
@@ -617,9 +744,12 @@ def main():
     parser.add_argument('--track_width', type=float, default=10, help='Width of each track (in inches).')
     parser.add_argument('--track_height', type=float, default=1, help='Height of each track (in inches).')
     parser.add_argument('--track_spacing', type=float, default=0.5, help='Spacing between tracks (in inches).')
+    
+    # New Argument for Normalization Method
+    parser.add_argument('--normalization_method', type=str, default='raw', choices=['raw', 'log2', 'log2_add1', 'log', 'log_add1'],
+                        help="Method for normalization of Hi-C matrices: 'raw', 'log2', 'log2_add1', 'log', or 'log_add1'.")
     parser.add_argument("-V", "--version", action="version",version="TriHeatmap {}".format(__version__)\
                       ,help="Print version and exit")
     args = parser.parse_args()
-
 if __name__ == '__main__':
     main()
