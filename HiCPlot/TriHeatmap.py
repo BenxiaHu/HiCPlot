@@ -2,6 +2,7 @@
 import argparse
 import os
 import pandas as pd
+from matplotlib.colors import LogNorm, Normalize
 import pyBigWig
 import pyranges as pr
 import numpy as np
@@ -11,51 +12,54 @@ from matplotlib.ticker import EngFormatter
 import itertools
 import matplotlib.gridspec as gridspec
 import matplotlib.colors as mcolors
+from matplotlib.patches import Arc
 
 dir = os.path.dirname(os.path.abspath(__file__))
 version_py = os.path.join(dir, "_version.py")
 exec(open(version_py).read())
 
-def plot_genes(ax, gtf_file, region, color='blue', track_height=1):
+def plot_genes(ax, gtf_file, region, genes_to_annotate=None, color='blue', track_height=1):
     """
-    Plot gene annotations on the provided axis.
+    Plot gene annotations on the given axis.
+    Annotate only the specified genes with their names.
 
     Parameters:
     - ax: Matplotlib axis to plot on.
     - gtf_file: Path to the GTF file.
-    - region: Tuple containing (chromosome, start, end).
-    - color: Color for gene annotations.
+    - region: Tuple (chromosome, start, end).
+    - genes_to_annotate: List of gene names to annotate. If None, no annotations.
+    - color: Color for gene lines and exons.
     - track_height: Height of each gene track.
     """
     spacing_factor = 1.5
     chrom, start, end = region
     # Load the GTF file using pyranges
     gtf = pr.read_gtf(gtf_file)
-    # Filter relevant region and keep only the longest isoform for each gene
+    # Filter relevant region
     region_genes = gtf[(gtf.Chromosome == chrom) & (gtf.Start < end) & (gtf.End > start)]
-    
+
     if region_genes.empty:
         print("No genes found in the specified region.")
         ax.axis('off')  # Hide the axis if no genes are present
         return
-    
+
     # Select the longest isoform for each gene
     longest_isoforms = region_genes.df.loc[region_genes.df.groupby('gene_id')['End'].idxmax()]
-    
+
     y_offset = 0
     y_step = track_height * spacing_factor  # Adjusted vertical step for tighter spacing
     plotted_genes = []
-    
+
     # Iterate over each gene and plot
     for _, gene in longest_isoforms.iterrows():
         # Determine y_offset to avoid overlap with previously plotted genes
         for plotted_gene in plotted_genes:
             if not (gene['End'] < plotted_gene['Start'] or gene['Start'] > plotted_gene['End']):
                 y_offset = max(y_offset, plotted_gene['y_offset'] + y_step)
-        
+
         # Plot gene line with increased linewidth for better visibility
         ax.plot([gene['Start'], gene['End']], [y_offset, y_offset], color=color, lw=1)
-        
+
         # Plot exons as larger rectangles for increased height
         exons = region_genes.df[
             (region_genes.df['gene_id'] == gene['gene_id']) & (region_genes.df['Feature'] == 'exon')
@@ -69,27 +73,28 @@ def plot_genes(ax, gtf_file, region, color='blue', track_height=1):
                     color=color
                 )
             )
-        
-        # Add gene name at the center of the gene, adjusted vertically
-        ax.text(
-            (gene['Start'] + gene['End']) / 2,
-            y_offset + 0.4 * track_height,  # Adjusted position for better alignment
-            gene['gene_name'],
-            fontsize=8,  # Increased font size for readability
-            ha='center',
-            va='bottom'  # Align text below the exon
-        )
-        
+
+        # Conditionally add gene name if it's in the specified list
+        if genes_to_annotate and gene['gene_name'] in genes_to_annotate:
+            ax.text(
+                (gene['Start'] + gene['End']) / 2,
+                y_offset - 0.4 * track_height,  # Positioned below the gene line
+                gene['gene_name'],
+                fontsize=8,  # Increased font size for readability
+                ha='center',
+                va='top'  # Align text above the specified y position
+            )
+
         # Track the plotted gene's range and offset
         plotted_genes.append({'Start': gene['Start'], 'End': gene['End'], 'y_offset': y_offset})
-    
+
     # Set y-axis limits based on the final y_offset
-    ax.set_ylim(-track_height, y_offset + track_height * 2)
+    ax.set_ylim(-track_height * 2, y_offset + track_height * 2)  # Expanded lower limit
     ax.set_ylabel('Genes')
     ax.set_yticks([])  # Hide y-ticks for a cleaner look
     ax.set_xlim(start, end)
     ax.set_xlabel("Position (Mb)")
-    
+
     # Format x-axis to display positions in megabases (Mb)
     ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, pos: f'{x / 1e6:.2f}'))
 
@@ -323,25 +328,86 @@ def plot_bed(ax, bed_file, region, color='green', label=None):
     if label:
         ax.set_title(label, fontsize=8)
 
-def get_bed_max(bed_files_sample1, bed_files_sample2, layout, region):
+def plot_loops(ax, loop_file, region, color='purple', alpha=0.5, linewidth=1, label=None):
     """
-    Compute a constant y_max for BED tracks since they are binary.
+    Plot chromatin loops as arcs on the given axis.
 
     Parameters:
-    - bed_files_sample1: List of BED files for sample 1.
-    - bed_files_sample2: List of BED files for sample 2.
-    - layout: Layout type ('horizontal' or 'vertical').
-    - region: Tuple containing (chromosome, start, end).
-
-    Returns:
-    - List of y_max values for BED tracks.
+    - ax: Matplotlib axis to plot on.
+    - loop_file: Path to the loop file.
+    - region: Tuple (chromosome, start, end).
+    - color: Color for the loop arcs.
+    - alpha: Transparency level for the arcs.
+    - linewidth: Width of the arc lines.
+    - label: Label for the loop track (sample name).
     """
-    if layout == "horizontal":
-        return [1] * max(len(bed_files_sample1), len(bed_files_sample2)) if (bed_files_sample1 or bed_files_sample2) else []
-    elif layout == "vertical":
-        return [1] * (len(bed_files_sample1) + len(bed_files_sample2)) if (bed_files_sample1 or bed_files_sample2) else []
+    chrom, start, end = region
+    # Read the loop file
+    loop_df = pd.read_csv(loop_file, sep='\t', header=0, usecols=[0,1,2,3,4,5],
+                          names=['chrom1', 'start1', 'end1', 'chrom2', 'start2', 'end2'])
+
+    # Filter loops where both anchors are within the region and on the same chromosome
+    loop_df = loop_df[
+        (loop_df['chrom1'] == chrom) &
+        (loop_df['chrom2'] == chrom) &
+        (loop_df['start1'] >= start) & (loop_df['end1'] <= end) &
+        (loop_df['start2'] >= start) & (loop_df['end2'] <= end)
+    ]
+
+    if loop_df.empty:
+        print(f"No loops detected in the specified region ({chrom}:{start}-{end}) in {loop_file}.")
+        ax.axis('off')
+        return
     else:
-        return []
+        print(f"Loops detected in the specified region ({chrom}:{start}-{end}) in {loop_file}.")
+
+    max_height = 0  # Keep track of the maximum arc height for y-axis scaling
+
+    # Add rectangle background to make arcs stand out
+    # Add rectangle background to make arcs stand out
+    ax.add_patch(
+        plt.Rectangle(
+            (start, 0),  # Position of the rectangle
+            end - start,
+            1.0,  # Height of the rectangle
+            #color='black',
+            alpha=1,  # Adjusted alpha for visibility
+            zorder=3,  # Draw behind other elements
+            edgecolor='black',  # Border color
+            linewidth=1.0,  # Width of the border line
+            facecolor="none",
+        )
+    )
+
+    # Plot each loop as an arc
+    for _, loop in loop_df.iterrows():
+        a1 = (loop['start1'] + loop['end1']) / 2  # Midpoint of anchor1
+        a2 = (loop['start2'] + loop['end2']) / 2  # Midpoint of anchor2
+        if a1 == a2:
+            continue  # Skip loops where both anchors are the same
+
+        # Calculate the width and height of the arc
+        width = abs(a2 - a1)
+        height = width / 2  # Adjust this factor to change the curvature
+
+        # Update max_height
+        if height > max_height:
+            max_height = height
+
+        # Determine the center of the arc
+        mid = (a1 + a2) / 2
+
+        # Create the Arc
+        arc = Arc((mid, 0), width=width, height=height*2, angle=0, theta1=0, theta2=180,
+                  edgecolor=color, facecolor='none', alpha=alpha, linewidth=linewidth)
+        ax.add_patch(arc)
+
+    # Adjust x-limits and y-limits
+    ax.set_xlim(start, end)
+    ax.set_ylim(0, max_height * 1.1)  # Adjust y-limits based on maximum arc height
+    ax.axis('off')  # Hide axis for loop tracks
+    if label:
+        ax.set_title(label, fontsize=8)  # Add sample name above the loop track
 
 def pcolormesh_triangle(ax, matrix, start=0, resolution=1, vmin=None, vmax=None, cmap='autumn_r', *args, **kwargs):
     """
@@ -369,18 +435,19 @@ def pcolormesh_triangle(ax, matrix, start=0, resolution=1, vmin=None, vmax=None,
     return im
 
 def plot_heatmaps(cooler_file1, sampleid1,
-                 bigwig_files_sample1=[], bigwig_labels_sample1=[], colors_sample1=[],
-                 bed_files_sample1=[], bed_labels_sample1=[], bed_colors_sample1=[],
+                 bigwig_files_sample1=[], bigwig_labels_sample1=[], colors_sample1="red",
+                 loop_file_sample1=None, loop_file_sample2=None,
+                 bed_files_sample1=[], bed_labels_sample1=[],
                  gtf_file=None,
                  cooler_file2=None, sampleid2=None,
-                 bigwig_files_sample2=[], bigwig_labels_sample2=[], colors_sample2=[],
-                 bed_files_sample2=[], bed_labels_sample2=[], bed_colors_sample2=[],
-                 resolution=10000,
-                 start=10500000, end=13200000, chrid="chr2",
+                 bigwig_files_sample2=[], bigwig_labels_sample2=[], colors_sample2="blue",
+                 bed_files_sample2=[], bed_labels_sample2=[],
+                 resolution=None,
+                 start=None, end=None, chrid=None,
                  cmap='autumn_r', vmin=None, vmax=None,
                  output_file='comparison_heatmap.pdf', layout='horizontal',
                  track_width=10, track_height=1, track_spacing=0.5,
-                 normalization_method='raw'):  # Added normalization_method
+                 normalization_method='raw',genes_to_annotate=None):  # Added normalization_method
     """
     Plot Hi-C heatmaps along with BigWig, BED, and gene annotations.
 
@@ -475,10 +542,17 @@ def plot_heatmaps(cooler_file1, sampleid1,
         # Row1: Colorbars
         # Rows2 to (2 + max_bigwig_bed_tracks -1): BigWig and BED tracks
         # Last row: Genes (optional)
-        num_rows = 2 + max_bigwig_bed_tracks + num_genes
+        # Include loops in the calculation of number of rows
+        num_loops = 0
+        if loop_file_sample1:
+            num_loops = 1
+        if loop_file_sample2:
+            num_loops = 1
+        num_rows = 2 + num_loops + max_bigwig_bed_tracks + num_genes
         
         # Define height ratios
-        height_ratios = [1, small_colorbar_height] + [0.5] * max_bigwig_bed_tracks + [0.5] * num_genes
+        loop_track_height = 0.3
+        height_ratios = [1, small_colorbar_height] + [loop_track_height]*num_loops + [0.5] * max_bigwig_bed_tracks + [0.5] * num_genes
         # Initialize GridSpec
         gs = gridspec.GridSpec(num_rows, ncols, height_ratios=height_ratios, hspace=0.5, wspace=0.3)
         # Define default figsize
@@ -532,13 +606,24 @@ def plot_heatmaps(cooler_file1, sampleid1,
             cax1.xaxis.set_ticks_position('bottom')
             cbar1.set_label(normalization_method, labelpad=3)
             cbar1.ax.xaxis.set_label_position('top')
+
+        # Plot loops if provided
+        current_row = 2
+        if loop_file_sample1:
+            ax_loop1 = f.add_subplot(gs[current_row, 0])
+            plot_loops(ax_loop1, loop_file_sample1, region, color=colors_sample1, alpha=0.7, linewidth=1, label=f"{sampleid1} Loops")
+            current_row += 1
+        if not single_sample and loop_file_sample2:
+            current_row = 2
+            ax_loop2 = f.add_subplot(gs[current_row, 1])
+            plot_loops(ax_loop2, loop_file_sample2, region, color=colors_sample2, alpha=0.7, linewidth=1, label=f"{sampleid2} Loops")
+            current_row += 1
+
         # Compute y_max_list for BigWig tracks
         y_min_max_list_bigwig = get_track_min_max(bigwig_files_sample1, bigwig_files_sample2, layout, region) if (bigwig_files_sample1 or bigwig_files_sample2) else []
-        # For BED tracks, y_max is always 1
-        y_max_list_bed = get_bed_max(bed_files_sample1, bed_files_sample2, layout, region) if (bed_files_sample1 or bed_files_sample2) else []
         
         # Plot BigWig and BED tracks
-        track_start_row = 2
+        track_start_row = current_row
         # Plot BigWig tracks for Sample1
         if len(bigwig_files_sample1):
             for i in range(len(bigwig_files_sample1)):
@@ -572,7 +657,7 @@ def plot_heatmaps(cooler_file1, sampleid1,
                 ax_bed.set_title(f"{bed_labels_sample2[l]} ({sampleid2})", fontsize=8)
         # Plot Genes if GTF file is provided
         if gtf_file:
-            gene_row = 2 + max_bigwig_bed_tracks
+            gene_row = 2 + num_loops + max_bigwig_bed_tracks
             ax_genes = f.add_subplot(gs[gene_row, 0])
             plot_genes(ax_genes, gtf_file, region, track_height=track_height)
             ax_genes.set_xlim(start, end)
@@ -599,17 +684,22 @@ def plot_heatmaps(cooler_file1, sampleid1,
         # Calculate colorbar rows
         # In vertical layout, we only want one colorbar
         num_colorbars = 1
-        
+        num_loops = 0
+        if loop_file_sample1:
+            num_loops = 1
+        if loop_file_sample2:
+            num_loops = num_loops + 1
         # Total rows:
         # Heatmap1
         # Heatmap2 (if dual sample)
         # Colorbar
         # Tracks
         # Genes (optional)
-        num_rows = max_cool_sample + num_colorbars + max_tracks + num_genes
+        num_rows = max_cool_sample + num_colorbars + num_loops + max_tracks + num_genes
         # Define height ratios
+        loop_track_height = 0.3
         height_ratios = [track_height] * max_cool_sample + [small_colorbar_height] + \
-                        [track_height] * max_tracks + \
+                        [loop_track_height]*num_loops + [track_height] * max_tracks + \
                         [track_height] * num_genes
         # Initialize GridSpec
         gs = gridspec.GridSpec(num_rows, ncols, height_ratios=height_ratios, hspace=0.5)
@@ -636,7 +726,7 @@ def plot_heatmaps(cooler_file1, sampleid1,
             ax_heatmap2.set_xlim(start, end)
             format_ticks(ax_heatmap2, rotate=False)
             ax_heatmap2.set_title(sampleid2, fontsize=8)
-        
+
         # Create a single colorbar for vertical layout
         cax = f.add_subplot(gs[max_cool_sample, 0])
         cbar = plt.colorbar(im1, cax=cax, orientation='horizontal')
@@ -645,12 +735,21 @@ def plot_heatmaps(cooler_file1, sampleid1,
         cbar.ax.xaxis.set_label_position('top')
         # Compute y_max_list for BigWig tracks
         y_min_max_list_bigwig = get_track_min_max(bigwig_files_sample1, bigwig_files_sample2, layout, region) if (bigwig_files_sample1 or bigwig_files_sample2) else []
-        # For BED tracks, y_max is always 1
-        y_max_list_bed = get_bed_max(bed_files_sample1, bed_files_sample2, layout, region) if (bed_files_sample1 or bed_files_sample2) else []
-        
+
+        # Plot loops
+        current_row = max_cool_sample + num_colorbars
+        if loop_file_sample1:
+            ax_loop1 = f.add_subplot(gs[current_row, 0])
+            plot_loops(ax_loop1, loop_file_sample1, region, color=colors_sample1, alpha=0.7, linewidth=1, label=f"{sampleid1} Loops")
+            current_row += 1
+        if loop_file_sample2:
+            ax_loop2 = f.add_subplot(gs[current_row, 0])
+            plot_loops(ax_loop2, loop_file_sample2, region, color=colors_sample2, alpha=0.7, linewidth=1, label=f"{sampleid2} Loops")
+            current_row += 1
+
         # Plot BigWig and BED tracks
         # Sample1 BigWig
-        track_start_row = max_cool_sample + 1
+        track_start_row = current_row
         if len(bigwig_files_sample1):
             for i in range(len(bigwig_files_sample1)):
                 ax_bw = f.add_subplot(gs[track_start_row + i, 0])
@@ -659,7 +758,7 @@ def plot_heatmaps(cooler_file1, sampleid1,
                 ax_bw.set_title(f"{bigwig_labels_sample1[i]} ({sampleid1})", fontsize=8)
                 ax_bw.set_xlim(start, end)
                 ax_bw.set_ylim(y_min_max_list_bigwig[i][0], y_min_max_list_bigwig[i][1] * 1.1)
-        track_start_row = max_cool_sample + 1 + len(bigwig_files_sample1)
+        track_start_row = max_cool_sample + 1 + num_loops + len(bigwig_files_sample1)
         # Sample2 BigWig
         if len(bigwig_files_sample2):
             for j in range(len(bigwig_files_sample2)):
@@ -669,14 +768,14 @@ def plot_heatmaps(cooler_file1, sampleid1,
                 ax_bw.set_title(f"{bigwig_labels_sample2[j]} ({sampleid2})", fontsize=8)
                 ax_bw.set_xlim(start, end)
                 ax_bw.set_ylim(y_min_max_list_bigwig[j][0], y_min_max_list_bigwig[j][1] * 1.1)
-        track_start_row = max_cool_sample + 1 + len(bigwig_files_sample1) + len(bigwig_files_sample2)
+        track_start_row = max_cool_sample + 1 + num_loops + len(bigwig_files_sample1) + len(bigwig_files_sample2)
         # Sample1 BED
         if len(bed_files_sample1):
             for k in range(len(bed_files_sample1)):
                 ax_bed = f.add_subplot(gs[track_start_row + k, 0])
                 plot_bed(ax_bed, bed_files_sample1[k], region, color=bed_colors_sample1[k], label=bed_labels_sample1[k])
                 ax_bed.set_title(f"{bed_labels_sample1[k]} ({sampleid1})", fontsize=8)
-        track_start_row = max_cool_sample + 1 + len(bigwig_files_sample1) + len(bigwig_files_sample2) + len(bed_files_sample1)
+        track_start_row = max_cool_sample + 1 + num_loops + len(bigwig_files_sample1) + len(bigwig_files_sample2) + len(bed_files_sample1)
         # Sample2 BED
         if len(bed_files_sample2):
             for l in range(len(bed_files_sample2)):
@@ -685,7 +784,7 @@ def plot_heatmaps(cooler_file1, sampleid1,
                 ax_bed.set_title(f"{bed_labels_sample2[l]} ({sampleid2})", fontsize=8)
         # Plot Genes if GTF file is provided
         if gtf_file:
-            gene_row = max_cool_sample + 1 + max_tracks
+            gene_row = max_cool_sample + 1 + max_tracks + num_loops
             ax_genes = f.add_subplot(gs[gene_row, 0])
             plot_genes(ax_genes, gtf_file, region, track_height=track_height)
             ax_genes.set_xlim(start, end)
@@ -727,18 +826,16 @@ def main():
     # BigWig arguments
     parser.add_argument('--bigwig_files_sample1', type=str, nargs='*', help='Paths to BigWig files for sample 1.', default=[])
     parser.add_argument('--bigwig_labels_sample1', type=str, nargs='*', help='Labels for BigWig tracks of sample 1.', default=[])
-    parser.add_argument('--colors_sample1', type=str, nargs='+', help='Colors for sample 1 tracks.', default=None)
+    parser.add_argument('--colors_sample1', type=str, default="red", help='Colors for sample 1 tracks.')
     parser.add_argument('--bigwig_files_sample2', type=str, nargs='*', help='Paths to BigWig files for sample 2.', default=[])
     parser.add_argument('--bigwig_labels_sample2', type=str, nargs='*', help='Labels for BigWig tracks of sample 2.', default=[])
-    parser.add_argument('--colors_sample2', type=str, nargs='+', help='Colors for sample 2 tracks.', default=None)
+    parser.add_argument('--colors_sample2', type=str, default="blue", help='Colors for sample 2 tracks.')
     
     # BED arguments
     parser.add_argument('--bed_files_sample1', type=str, nargs='*', help='Paths to BED files for sample 1.', default=[])
     parser.add_argument('--bed_labels_sample1', type=str, nargs='*', help='Labels for BED tracks of sample 1.', default=[])
-    parser.add_argument('--bed_colors_sample1', type=str, nargs='*', help='Colors for BED tracks of sample 1.', default=None)
     parser.add_argument('--bed_files_sample2', type=str, nargs='*', help='Paths to BED files for sample 2.', default=[])
     parser.add_argument('--bed_labels_sample2', type=str, nargs='*', help='Labels for BED tracks of sample 2.', default=[])
-    parser.add_argument('--bed_colors_sample2', type=str, nargs='*', help='Colors for BED tracks of sample 2.', default=None)
     
     # Track dimensions and spacing
     parser.add_argument('--track_width', type=float, default=10, help='Width of each track (in inches).')
@@ -748,8 +845,16 @@ def main():
     # New Argument for Normalization Method
     parser.add_argument('--normalization_method', type=str, default='raw', choices=['raw', 'log2', 'log2_add1', 'log', 'log_add1'],
                         help="Method for normalization of Hi-C matrices: 'raw', 'log2', 'log2_add1', 'log', or 'log_add1'.")
+    # Loop file arguments
+    parser.add_argument('--loop_file_sample1', type=str, help='Path to the chromatin loop file for sample 1.', default=None)
+    parser.add_argument('--loop_file_sample2', type=str, help='Path to the chromatin loop file for sample 2.', default=None)
+    # Gene annotation arguments
+    parser.add_argument('--genes_to_annotate', type=str, nargs='*', help='Gene names to annotate.', default=None)
     parser.add_argument("-V", "--version", action="version",version="TriHeatmap {}".format(__version__)\
                       ,help="Print version and exit")
     args = parser.parse_args()
+    
+    # Call the plotting function with the normalization_method argument
+
 if __name__ == '__main__':
     main()

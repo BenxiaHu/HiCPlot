@@ -13,12 +13,24 @@ dir = os.path.dirname(os.path.abspath(__file__))
 version_py = os.path.join(dir, "_version.py")
 exec(open(version_py).read())
 
-def plot_genes(ax, gtf_file, region, color='blue', track_height=1):
+def plot_genes(ax, gtf_file, region, genes=None, color='blue', track_height=1):
+    """
+    Plot gene lines for all genes in the region.
+    Annotate only the specified genes with their names.
+    
+    Parameters:
+    - ax: Matplotlib axis to plot on.
+    - gtf_file: Path to the GTF file.
+    - region: Tuple (chromosome, start, end).
+    - genes: List of gene names to annotate. If None, no annotations.
+    - color: Color for gene lines and exons.
+    - track_height: Height of each gene track.
+    """
     spacing_factor = 1.5
     chrom, start, end = region
     # Load the GTF file using pyranges
     gtf = pr.read_gtf(gtf_file)
-    # Filter relevant region and keep only the longest isoform for each gene
+    # Filter relevant region
     region_genes = gtf[(gtf.Chromosome == chrom) & (gtf.Start < end) & (gtf.End > start)]
     
     if region_genes.empty:
@@ -57,21 +69,23 @@ def plot_genes(ax, gtf_file, region, color='blue', track_height=1):
                 )
             )
         
-        # Add gene name at the center of the gene, adjusted vertically
-        ax.text(
-            (gene['Start'] + gene['End']) / 2,
-            y_offset + 0.4 * track_height,  # Adjusted position for better alignment
-            gene['gene_name'],
-            fontsize=8,  # Increased font size for readability
-            ha='center',
-            va='bottom'  # Align text below the exon
-        )
+        # Conditionally add gene name if it's in the specified list
+        if genes and gene['gene_name'] in genes:
+            ax.text(
+                (gene['Start'] + gene['End']) / 2,
+                y_offset - 0.4 * track_height,  # Positioned below the gene line
+                gene['gene_name'],
+                fontsize=8,  # Increased font size for readability
+                ha='center',
+                va='top'  # Align text above the specified y position
+            )
         
         # Track the plotted gene's range and offset
         plotted_genes.append({'Start': gene['Start'], 'End': gene['End'], 'y_offset': y_offset})
     
     # Set y-axis limits based on the final y_offset
-    ax.set_ylim(-track_height, y_offset + track_height * 2)
+    # Expanded lower limit to accommodate gene names below the lines
+    ax.set_ylim(-track_height * 2, y_offset + track_height * 2)
     ax.set_ylabel('Genes')
     ax.set_yticks([])  # Hide y-ticks for a cleaner look
     ax.set_xlim(start, end)
@@ -270,27 +284,57 @@ def plot_bed(ax, bed_file, region, color='green', label=None):
         ax.set_title(label, fontsize=8)
 
 def plot_tracks(
-    bigwig_files_sample1, bigwig_labels_sample1, colors_sample1=[],
-    bigwig_files_sample2=[], bigwig_labels_sample2=[], colors_sample2=[],
-    bed_files_sample1=[], bed_labels_sample1=[], bed_colors_sample1=[],
-    bed_files_sample2=[], bed_labels_sample2=[], bed_colors_sample2=[],
+    bigwig_files_sample1, bigwig_labels_sample1, 
+    bigwig_files_sample2=[], bigwig_labels_sample2=[], 
+    colors_sample1="red",colors_sample2="blue",
+    bed_files_sample1=[], bed_labels_sample1=[],
+    bed_files_sample2=[], bed_labels_sample2=[],
     gtf_file=None,
-    chrom,start,end,
-    vmin=None, vmax=None,
+    genes=None,
+    chrom=None, start=None, end=None,
+    cmap='autumn_r', vmin=None, vmax=None,
     output_file='comparison_tracks.pdf',
     layout='vertical',
     track_width=10, track_height=1, track_spacing=0.5
 ):
+    """
+    Plot BigWig, BED, and GTF tracks with customizable layout.
+
+    Parameters:
+    - bigwig_files_sample1: List of BigWig file paths for sample 1.
+    - bigwig_labels_sample1: List of labels for BigWig tracks of sample 1.
+    - colors_sample1: List of colors for BigWig tracks of sample 1.
+    - bigwig_files_sample2: List of BigWig file paths for sample 2.
+    - bigwig_labels_sample2: List of labels for BigWig tracks of sample 2.
+    - colors_sample2: List of colors for BigWig tracks of sample 2.
+    - bed_files_sample1: List of BED file paths for sample 1.
+    - bed_labels_sample1: List of labels for BED tracks of sample 1.
+    - bed_files_sample2: List of BED file paths for sample 2.
+    - bed_labels_sample2: List of labels for BED tracks of sample 2.
+    - gtf_file: Path to the GTF file for gene annotations.
+    - genes: List of gene names to annotate.
+    - chrom: Chromosome ID.
+    - start: Start position of the region.
+    - end: End position of the region.
+    - cmap: Colormap for plots.
+    - vmin: Minimum value for scaling.
+    - vmax: Maximum value for scaling.
+    - output_file: Filename for the saved PDF.
+    - layout: 'horizontal' or 'vertical'.
+    - track_width: Width of each track in inches.
+    - track_height: Height of each track in inches.
+    - track_spacing: Spacing between tracks in inches.
+    """
     plt.rcParams['font.size'] = 8
     track_spacing = track_spacing * 1.2
-    single_sample = bigwig_files_sample2 is None
+    single_sample = len(bigwig_files_sample2) == 0
 
     if layout == 'horizontal':
         num_genes = 1 if gtf_file else 0
         ncols = 1 if single_sample else 2
         # Calculate the maximum number of BigWig and BED tracks per sample
-        max_bigwig_sample = max(len(bigwig_files_sample1), len(bigwig_files_sample2))
-        max_bed_sample = max(len(bed_files_sample1), len(bed_files_sample2))
+        max_bigwig_sample = max(len(bigwig_files_sample1), len(bigwig_files_sample2)) if not single_sample else len(bigwig_files_sample1)
+        max_bed_sample = max(len(bed_files_sample1), len(bed_files_sample2)) if not single_sample else len(bed_files_sample1)
         max_bigwig_bed_tracks = max_bigwig_sample + max_bed_sample
 
         num_rows = max_bigwig_bed_tracks + num_genes
@@ -302,57 +346,65 @@ def plot_tracks(
         f = plt.figure(figsize=figsize)
         
         # Compute y_max_list for BigWig tracks
-        y_min_max_list_bigwig = get_track_min_max(bigwig_files_sample1, bigwig_files_sample2, layout, region) if (bigwig_files_sample1 or bigwig_files_sample2) else []
+        y_min_max_list_bigwig = get_track_min_max(bigwig_files_sample1, bigwig_files_sample2, layout, (chrom, start, end)) if (bigwig_files_sample1 or bigwig_files_sample2) else []
 
         # Sample1 BigWig
         track_start_row = 0
         for i in range(len(bigwig_files_sample1)):
             ax_bw1 = f.add_subplot(gs[track_start_row, 0])
-            plot_seq(ax_bw1, bigwig_files_sample1[i], region, color=colors_sample1[i],
+            plot_seq(ax_bw1, bigwig_files_sample1[i], (chrom, start, end), color=colors_sample1,
                      y_min=y_min_max_list_bigwig[i][0], y_max=y_min_max_list_bigwig[i][1])
             ax_bw1.set_title(f"{bigwig_labels_sample1[i]}", fontsize=8)
             ax_bw1.set_xlim(start, end)
-            ax_bw1.set_ylim(y_min_max_list_bigwig[i][0], y_min_max_list_bigwig[i][1] * 1.1)
+            if y_min_max_list_bigwig[i][1] is not None:
+                ax_bw1.set_ylim(
+                    y_min_max_list_bigwig[i][0], 
+                    y_min_max_list_bigwig[i][1] * 1.1
+                )
 
         # Sample2 BigWig
-        track_start_row = 0
-        if len(bigwig_files_sample2):
+        if not single_sample and len(bigwig_files_sample2):
             for j in range(len(bigwig_files_sample2)):
                 ax_bw2 = f.add_subplot(gs[j, 1])
-                plot_seq(ax_bw2, bigwig_files_sample2[j], region, color=colors_sample2[j],
-                    y_min=y_min_max_list_bigwig[j][0], y_max=y_min_max_list_bigwig[j][1])
+                plot_seq(ax_bw2, bigwig_files_sample2[j], (chrom, start, end), color=colors_sample2,
+                        y_min=y_min_max_list_bigwig[j][0], y_max=y_min_max_list_bigwig[j][1])
                 ax_bw2.set_title(f"{bigwig_labels_sample2[j]}", fontsize=8)
                 ax_bw2.set_xlim(start, end)
-                ax_bw2.set_ylim(y_min_max_list_bigwig[j][0], y_min_max_list_bigwig[j][1] * 1.1)
+                if y_min_max_list_bigwig[j][1] is not None:
+                    ax_bw2.set_ylim(
+                        y_min_max_list_bigwig[j][0], 
+                        y_min_max_list_bigwig[j][1] * 1.1
+                    )
+        
         # Plot BED tracks
         # Sample1 BED
-        track_start_row = 0 + len(bigwig_files_sample1)
+        track_start_row = len(bigwig_files_sample1)
         if len(bed_files_sample1):
             for k in range(len(bed_files_sample1)):
                 ax_bed = f.add_subplot(gs[track_start_row + k, 0])
-                plot_bed(ax_bed, bed_files_sample1[k], region, color=bed_colors_sample1[k], label=bed_labels_sample1[k])
+                label = bed_labels_sample1[k] if k < len(bed_labels_sample1) else None
+                plot_bed(ax_bed, bed_files_sample1[k], (chrom, start, end), color=colors_sample1, label=label)
                 ax_bed.set_title(f"{bed_labels_sample1[k]}", fontsize=8)
             
         # Sample2 BED
-        track_start_row = 0 + len(bigwig_files_sample1)
-        if len(bed_files_sample2):
+        if not single_sample and len(bed_files_sample2):
+            track_start_row = len(bigwig_files_sample1)
             for l in range(len(bed_files_sample2)):
                 ax_bed = f.add_subplot(gs[track_start_row + l, 1])
-                plot_bed(ax_bed, bed_files_sample2[l], region, color=bed_colors_sample2[l], label=bed_labels_sample2[l])
+                label = bed_labels_sample2[l] if l < len(bed_labels_sample2) else None
+                plot_bed(ax_bed, bed_files_sample2[l], (chrom, start, end), color=colors_sample2, label=label)
                 ax_bed.set_title(f"{bed_labels_sample2[l]}", fontsize=8)
 
         # Plot Genes if GTF file is provided
         if gtf_file:
             gene_row = max_bigwig_bed_tracks
             ax_genes = f.add_subplot(gs[gene_row, 0])
-            plot_genes(ax_genes, gtf_file, region, track_height=track_height)
+            plot_genes(ax_genes, gtf_file, (chrom, start, end), genes=genes, track_height=track_height)
             ax_genes.set_xlim(start, end)
-            #ax_genes.set_aspect('auto')  # Default aspect
             if not single_sample:
                 ax_genes = f.add_subplot(gs[gene_row, 1])
-                plot_genes(ax_genes, gtf_file, region, track_height=track_height)
+                plot_genes(ax_genes, gtf_file, (chrom, start, end), genes=genes, track_height=track_height)
                 ax_genes.set_xlim(start, end)
-                #ax_genes.set_aspect('auto')  # Default aspect
 
     elif layout == 'vertical':
         num_genes = 1 if gtf_file else 0
@@ -361,6 +413,7 @@ def plot_tracks(
         max_bigwig_sample = len(bigwig_files_sample1) + len(bigwig_files_sample2)
         max_bed_sample = len(bed_files_sample1) + len(bed_files_sample2)
         max_tracks = max_bigwig_sample + max_bed_sample
+
         num_rows = max_tracks + num_genes
         height_ratios = [track_height] * max_tracks + [track_height] * num_genes
         gs = gridspec.GridSpec(num_rows, ncols, height_ratios=height_ratios, hspace=track_spacing/(track_height))
@@ -369,49 +422,58 @@ def plot_tracks(
         figsize = (width, height)
         f = plt.figure(figsize=figsize)
         
-        y_min_max_list_bigwig = get_track_min_max(bigwig_files_sample1, bigwig_files_sample2, layout, region) if (bigwig_files_sample1 or bigwig_files_sample2) else []
+        y_min_max_list_bigwig = get_track_min_max(bigwig_files_sample1, bigwig_files_sample2, layout, (chrom, start, end)) if (bigwig_files_sample1 or bigwig_files_sample2) else []
         # Plot BigWig and BED tracks
         # Sample1 BigWig
         track_start_row = 0
         if len(bigwig_files_sample1):
             for i in range(len(bigwig_files_sample1)):
                 ax_bw = f.add_subplot(gs[track_start_row + i, 0])
-                plot_seq(ax_bw, bigwig_files_sample1[i], region, color=colors_sample1[i], 
+                plot_seq(ax_bw, bigwig_files_sample1[i], (chrom, start, end), color=colors_sample1, 
                     y_min=y_min_max_list_bigwig[i][0], y_max=y_min_max_list_bigwig[i][1])
                 ax_bw.set_title(f"{bigwig_labels_sample1[i]}", fontsize=8)
                 ax_bw.set_xlim(start, end)
-                ax_bw.set_ylim(y_min_max_list_bigwig[i][0], y_min_max_list_bigwig[i][1] * 1.1)
-        track_start_row = 0 + len(bigwig_files_sample1)
+                if y_min_max_list_bigwig[i][1] is not None:
+                    ax_bw.set_ylim(
+                        y_min_max_list_bigwig[i][0], 
+                        y_min_max_list_bigwig[i][1] * 1.1
+                    )
+        track_start_row = len(bigwig_files_sample1)
         # Plot BigWig files for Sample2
         if len(bigwig_files_sample2):
             for j in range(len(bigwig_files_sample2)):
                 ax_bw = f.add_subplot(gs[track_start_row + j, 0])
-                plot_seq(ax_bw, bigwig_files_sample2[j], region, color=colors_sample2[j], 
+                plot_seq(ax_bw, bigwig_files_sample2[j], (chrom, start, end), color=colors_sample2, 
                 y_min=y_min_max_list_bigwig[j][0], y_max=y_min_max_list_bigwig[j][1])
                 ax_bw.set_title(f"{bigwig_labels_sample2[j]}", fontsize=8)
                 ax_bw.set_xlim(start, end)
-                ax_bw.set_ylim(y_min_max_list_bigwig[j][0], y_min_max_list_bigwig[j][1] * 1.1)
+                if y_min_max_list_bigwig[j][1] is not None:
+                    ax_bw.set_ylim(
+                        y_min_max_list_bigwig[j][0], 
+                        y_min_max_list_bigwig[j][1] * 1.1
+                    )
         
-        track_start_row = 0 + len(bigwig_files_sample1) + len(bigwig_files_sample2)
+        track_start_row = len(bigwig_files_sample1) + len(bigwig_files_sample2)
         # Plot BED files for Sample1
         if len(bed_files_sample1):
             for k in range(len(bed_files_sample1)):
                 ax_bed = f.add_subplot(gs[track_start_row + k, 0])
-                plot_bed(ax_bed, bed_files_sample1[k], region, color=bed_colors_sample1[k], label=bed_labels_sample1[k])
+                label = bed_labels_sample1[k] if k < len(bed_labels_sample1) else None
+                plot_bed(ax_bed, bed_files_sample1[k], (chrom, start, end), color=colors_sample1, label=label)
                 ax_bed.set_title(f"{bed_labels_sample1[k]}", fontsize=8)
-        track_start_row = 0 + len(bigwig_files_sample1) + len(bigwig_files_sample2) + len(bed_files_sample1)
         # Plot BED files for Sample2
         if len(bed_files_sample2):
             for l in range(len(bed_files_sample2)):
                 ax_bed = f.add_subplot(gs[track_start_row + l, 0])
-                plot_bed(ax_bed, bed_files_sample2[l], region, color=bed_colors_sample2[l], label=bed_labels_sample2[l])
+                label = bed_labels_sample2[l] if l < len(bed_labels_sample2) else None
+                plot_bed(ax_bed, bed_files_sample2[l], (chrom, start, end), color=colors_sample2, label=label)
                 ax_bed.set_title(f"{bed_labels_sample2[l]}", fontsize=8)
         
         # Plot Genes if GTF file is provided
         if gtf_file:
             gene_row = max_tracks
             ax_genes = f.add_subplot(gs[gene_row, 0])
-            plot_genes(ax_genes, gtf_file, region, track_height=track_height)
+            plot_genes(ax_genes, gtf_file, (chrom, start, end), genes=genes, track_height=track_height)
             ax_genes.set_xlim(start, end)
     else:
         raise ValueError("Invalid layout option. Use 'horizontal' or 'vertical'.")
@@ -420,6 +482,7 @@ def plot_tracks(
     # Save the figure
     f.savefig(output_file, bbox_inches='tight')
     plt.close(f)
+
 
 def main():
     parser = argparse.ArgumentParser(description='Plot BigWig, BED, and GTF tracks with customizable layout.')
@@ -443,26 +506,28 @@ def main():
     # Optional GTF file for gene annotations
     parser.add_argument('--gtf_file', type=str, required=False, help='Path to the GTF file for gene annotations.', default=None)
 
+    # Optional Gene names
+    parser.add_argument('--gene', type=str, nargs='*', help='Gene names to display.', default=None)
+
     # Genomic region
     parser.add_argument('--start', type=int, required=True, help='Start position for the region of interest.')
-    parser.add_argument('--end', type=int,required=True, help='End position for the region of interest.')
-    parser.add_argument('--chrid', type=str,required=True, help='Chromosome ID.')
+    parser.add_argument('--end', type=int, required=True, help='End position for the region of interest.')
+    parser.add_argument('--chrid', type=str, required=True, help='Chromosome ID.')
 
     # Visualization parameters
+    parser.add_argument('--cmap', type=str, default='autumn_r', help='Colormap to be used for plotting.')
     parser.add_argument('--vmin', type=float, default=None, help='Minimum value for LogNorm scaling.')
     parser.add_argument('--vmax', type=float, default=None, help='Maximum value for LogNorm scaling.')
     parser.add_argument('--output_file', type=str, default='comparison_tracks.pdf', help='Filename for the saved comparison tracks PDF.')
 
     # Track dimensions and spacing
     parser.add_argument('--track_width', type=float, default=10, help='Width of each track (in inches).')
-    parser.add_argument('--track_height', type=float, default=1, help='Height of each track (in inches).')
+    parser.add_argument('--track_height', type=float, default=1, help='Height of each BigWig/BED track (in inches).')
     parser.add_argument('--track_spacing', type=float, default=0.5, help='Spacing between tracks (in inches).')
 
     # Colors for BigWig and BED tracks
-    parser.add_argument('--colors_sample1', type=str, nargs='*', help='Colors for sample 1 BigWig tracks.', default=[])
-    parser.add_argument('--colors_sample2', type=str, nargs='*', help='Colors for sample 2 BigWig tracks.', default=[])
-    parser.add_argument('--colors_bed_sample1', type=str, nargs='*', help='Colors for sample 1 BED tracks.', default=[])
-    parser.add_argument('--colors_bed_sample2', type=str, nargs='*', help='Colors for sample 2 BED tracks.', default=[])
+    parser.add_argument('--colors_sample1', type=str, default="red", help='Colors for sample 1 BigWig tracks.')
+    parser.add_argument('--colors_sample2', type=str, default="blue", help='Colors for sample 2 BigWig tracks.')
 
     # Layout argument
     parser.add_argument('--layout', type=str, default='vertical', choices=['horizontal', 'vertical'],
