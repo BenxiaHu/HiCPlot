@@ -80,7 +80,7 @@ the output file is heatmaps and genome tracks.
 ```
 
 **Square division Heatmap**  
-![Square division Heatmap](./images/Division_Square_horizontal_heatmap.png)
+![Square division Heatmap](./images/Division_Square_vertical_heatmap.png)
 
 #### plot genomic tracks based on bigwig files
 #### usage: 
