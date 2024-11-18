@@ -11,6 +11,7 @@ import cooler
 from matplotlib.ticker import EngFormatter
 import matplotlib.gridspec as gridspec
 from matplotlib.patches import Arc
+from collections import defaultdict
 
 dir = os.path.dirname(os.path.abspath(__file__))
 version_py = os.path.join(dir, "_version.py")
@@ -137,71 +138,51 @@ def read_bigwig(file_path, region):
         raise ValueError(f"Unsupported file format: {file_extension}. Supported formats are BigWig (.bw) and bedGraph (.bedgraph, .bg).")
     return positions, values
 
-def get_track_min_max(bigwig_files_sample1, bigwig_files_sample2, layoutid, region):
+def get_track_min_max(bigwig_files_sample1, bigwig_labels_sample1,
+                      bigwig_files_sample2, bigwig_labels_sample2,
+                      region):
     """
-    Determine the minimum and maximum values across all BigWig files to set consistent y-axis limits.
+    Compute the minimum and maximum values for BigWig tracks per type to ensure consistent y-axis scaling.
+
+    Parameters:
+    - bigwig_files_sample1: List of BigWig files for sample 1.
+    - bigwig_labels_sample1: List of labels corresponding to BigWig files for sample 1.
+    - bigwig_files_sample2: List of BigWig files for sample 2.
+    - bigwig_labels_sample2: List of labels corresponding to BigWig files for sample 2.
+    - region: Tuple containing (chromosome, start, end).
+
+    Returns:
+    - type_min_max: Dictionary with BigWig types as keys and (min, max) tuples as values.
     """
-    if layoutid == "horizontal":
-        max_num_tracks = max(len(bigwig_files_sample1), len(bigwig_files_sample2))
-    elif layoutid == "vertical":
-        max_num_tracks = len(bigwig_files_sample1) + len(bigwig_files_sample2)
-    else:
-        raise ValueError("Invalid layoutid. Use 'horizontal' or 'vertical'.")
+    type_min_max = defaultdict(lambda: {'min': np.inf, 'max': -np.inf})
 
-    min_max_list = []
+    # Function to extract type from label (assumes type is the first part before a space)
+    def extract_type(label):
+        return label.split("_")[1] if label and "_" in label else 'Unknown'
 
-    for i in range(max_num_tracks):
-        min_val = np.inf
-        max_val = -np.inf
 
-        if layoutid == "horizontal":
-            # In horizontal layout, track i corresponds to sample1[i] and sample2[i]
-            # Sample 1
-            if i < len(bigwig_files_sample1):
-                positions, values = read_bigwig(bigwig_files_sample1[i], region)
-                if values is not None and len(values) > 0:
-                    current_min = np.nanmin(values)
-                    current_max = np.nanmax(values)
-                    min_val = min(min_val, current_min)
-                    max_val = max(max_val, current_max)
+    # Combine sample1 and sample2 BigWig files and labels
+    combined_files = bigwig_files_sample1 + bigwig_files_sample2
+    combined_labels = bigwig_labels_sample1 + bigwig_labels_sample2
 
-            # Sample 2
-            if i < len(bigwig_files_sample2):
-                positions, values = read_bigwig(bigwig_files_sample2[i], region)
-                if values is not None and len(values) > 0:
-                    current_min = np.nanmin(values)
-                    current_max = np.nanmax(values)
-                    min_val = min(min_val, current_min)
-                    max_val = max(max_val, current_max)
+    for file, label in zip(combined_files, combined_labels):
+        bw_type = extract_type(label)
+        positions, values = read_bigwig(file, region)
+        if values is not None and len(values) > 0:
+            current_min = np.nanmin(values)
+            current_max = np.nanmax(values)
+            type_min_max[bw_type]['min'] = min(type_min_max[bw_type]['min'], current_min)
+            type_min_max[bw_type]['max'] = max(type_min_max[bw_type]['max'], current_max)
 
-        elif layoutid == "vertical":
-            # In vertical layout, first all sample1 tracks, then sample2 tracks
-            if i < len(bigwig_files_sample1):
-                # Sample 1 tracks
-                positions, values = read_bigwig(bigwig_files_sample1[i], region)
-                if values is not None and len(values) > 0:
-                    current_min = np.nanmin(values)
-                    current_max = np.nanmax(values)
-                    min_val = min(min_val, current_min)
-                    max_val = max(max_val, current_max)
-            else:
-                # Sample 2 tracks
-                sample2_idx = i - len(bigwig_files_sample1)
-                if sample2_idx < len(bigwig_files_sample2):
-                    positions, values = read_bigwig(bigwig_files_sample2[sample2_idx], region)
-                    if values is not None and len(values) > 0:
-                        current_min = np.nanmin(values)
-                        current_max = np.nanmax(values)
-                        min_val = min(min_val, current_min)
-                        max_val = max(max_val, current_max)
-
-        # Handle cases where no data was found for the track
-        if min_val == np.inf and max_val == -np.inf:
-            min_max_list.append((None, None))
+    # Replace infinities with None if no data was found for a type
+    for bw_type in type_min_max:
+        if type_min_max[bw_type]['min'] == np.inf and type_min_max[bw_type]['max'] == -np.inf:
+            type_min_max[bw_type] = (None, None)
         else:
-            min_max_list.append((min_val, max_val))
+            type_min_max[bw_type] = (type_min_max[bw_type]['min'], type_min_max[bw_type]['max'])
 
-    return min_max_list
+    return type_min_max
+
 
 def plot_seq(ax, file_path, region, color='blue', y_min=None, y_max=None):
     """
@@ -497,64 +478,64 @@ def plot_heatmaps(
         plot_loops(ax_loop2, loop_file_sample2, region, color=colors_sample2, alpha=0.7, linewidth=1, label='Sample2 Loops')
         current_row += 1
 
-    # Compute y_max_list for BigWig tracks to ensure consistent y-axis across samples per track row
-    y_min_max_list_bigwig = get_track_min_max(bigwig_files_sample1, bigwig_files_sample2, 'vertical', region)
+    # Compute global min and max per BigWig type
+    type_min_max = get_track_min_max(bigwig_files_sample1, bigwig_labels_sample1,
+                                        bigwig_files_sample2, bigwig_labels_sample2,
+                                        region=region)
 
     # Plot BigWig tracks for Sample1 and Sample2
     # Sample1 BigWig
-    for i in range(len(bigwig_files_sample1)):
-        ax_bw = f.add_subplot(gs[current_row + i, 0])
-        #color = colors_sample1 if colors_sample1 else 'red'
-        plot_seq(ax_bw, bigwig_files_sample1[i], region, color=colors_sample1,
-                 y_min=y_min_max_list_bigwig[i][0], y_max=y_min_max_list_bigwig[i][1])
-        ax_bw.set_title(f"{bigwig_labels_sample1[i]}", fontsize=8)
-        ax_bw.set_xlim(start, end)
-        if y_min_max_list_bigwig[i][1] is not None:
-            ax_bw.set_ylim(
-                y_min_max_list_bigwig[i][0],
-                y_min_max_list_bigwig[i][1] * 1.1
-            )
+    track_start_row = current_row
+    if bigwig_files_sample1:
+        for i in range(len(bigwig_files_sample1)):
+            ax_bw = f.add_subplot(gs[track_start_row + i, 0])
+            bw_type = bigwig_labels_sample1[i].split("_")[1]
+            y_min, y_max = type_min_max.get(bw_type, (None, None))
+            plot_seq(ax_bw, bigwig_files_sample1[i], region, color=colors_sample1, 
+                y_min=y_min, y_max=y_max)
+            ax_bw.set_title(f"{bigwig_labels_sample1[i]}", fontsize=8)
+            ax_bw.set_xlim(start, end)
+            if y_min is not None and y_max is not None:
+                ax_bw.set_ylim(y_min, y_max * 1.1)
 
     # Plot BigWig tracks for Sample2
-    for j in range(len(bigwig_files_sample2)):
-        ax_bw = f.add_subplot(gs[current_row + len(bigwig_files_sample1) + j, 0])
-        #color = colors_sample2 if colors_sample2 else 'blue'
-        bw_index = len(bigwig_files_sample1) + j
-        plot_seq(ax_bw, bigwig_files_sample2[j], region, color=colors_sample2,
-                 y_min=y_min_max_list_bigwig[bw_index][0],
-                 y_max=y_min_max_list_bigwig[bw_index][1])
-        ax_bw.set_title(f"{bigwig_labels_sample2[j]}", fontsize=8)
-        ax_bw.set_xlim(start, end)
-        if y_min_max_list_bigwig[bw_index][1] is not None:
-            ax_bw.set_ylim(
-                y_min_max_list_bigwig[bw_index][0],
-                y_min_max_list_bigwig[bw_index][1] * 1.1
-            )
+    if bigwig_files_sample2:
+        for j in range(len(bigwig_files_sample2)):
+            ax_bw = f.add_subplot(gs[track_start_row + len(bigwig_files_sample1) + j, 0])
+            #bw_index = len(bigwig_files_sample2) + j
+            bw_type = bigwig_labels_sample2[j].split("_")[1]
+            y_min, y_max = type_min_max.get(bw_type, (None, None))
+            plot_seq(ax_bw, bigwig_files_sample2[j], region, color=colors_sample2, 
+                y_min=y_min, y_max=y_max)
+            ax_bw.set_title(f"{bigwig_labels_sample2[j]}", fontsize=8)
+            ax_bw.set_xlim(start, end)
+            if y_min is not None and y_max is not None:
+                ax_bw.set_ylim(y_min, y_max * 1.1)
 
-    current_row += len(bigwig_files_sample1) + len(bigwig_files_sample2)
+    bed_start_row = track_start_row + len(bigwig_files_sample1) + len(bigwig_files_sample2)
 
     # Plot BED tracks for Sample1 and Sample2
     # Sample1 BED
-    for k in range(len(bed_files_sample1)):
-        ax_bed = f.add_subplot(gs[current_row + k, 0])
-        #color = colors_sample1 if colors_sample1 else 'red'
-        label = bed_labels_sample1[k] if bed_labels_sample1 and k < len(bed_labels_sample1) else None
-        plot_bed(ax_bed, bed_files_sample1[k], region, color=colors_sample1, linewidth=1, label=label)
-        ax_bed.set_title(f"{bed_labels_sample1[k]}", fontsize=8)
+    if bed_files_sample1:
+        for k in range(len(bed_files_sample1)):
+            ax_bed = f.add_subplot(gs[bed_start_row + k, 0])
+            label = bed_labels_sample1[k]
+            plot_bed(ax_bed, bed_files_sample1[k], region, 
+                color=colors_sample1, linewidth=1, label=label)
+            ax_bed.set_title(f"{bed_labels_sample1[k]}", fontsize=8)
 
     # Sample2 BED
-    for l in range(len(bed_files_sample2)):
-        ax_bed = f.add_subplot(gs[current_row + len(bed_files_sample1) + l, 0])
-        #color = colors_sample2 if colors_sample2 else 'green'
-        label = bed_labels_sample2[l] if bed_labels_sample2 and l < len(bed_labels_sample2) else None
-        plot_bed(ax_bed, bed_files_sample2[l], region, color=colors_sample2, linewidth=1, label=label)
-        ax_bed.set_title(f"{bed_labels_sample2[l]}", fontsize=8)
-
-    current_row += len(bed_files_sample1) + len(bed_files_sample2)
+    if bed_files_sample2:
+        for l in range(len(bed_files_sample2)):
+            ax_bed = f.add_subplot(gs[bed_start_row + len(bed_files_sample1) + l, 0])
+            label = bed_labels_sample2[l]
+            plot_bed(ax_bed, bed_files_sample2[l], region, 
+                color=colors_sample2, linewidth=1, label=label)
+            ax_bed.set_title(f"{bed_labels_sample2[l]}", fontsize=8)
 
     # Plot Genes if GTF file is provided
     if gtf_file:
-        ax_genes = f.add_subplot(gs[current_row, 0])
+        ax_genes = f.add_subplot(gs[num_rows-1, 0])
         plot_genes(ax_genes, gtf_file, region, genes_to_annotate=genes_to_annotate, color='blue', track_height=1)
         ax_genes.set_xlim(start, end)
 
@@ -616,6 +597,7 @@ def main():
     parser.add_argument("-V", "--version", action="version", version=f"HiCHeatmap {__version__}",
                       help="Print version and exit")
     args = parser.parse_args()
+
 
 if __name__ == '__main__':
     main()

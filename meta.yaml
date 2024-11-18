@@ -1,6 +1,6 @@
 package:
   name: hicplot
-  version: 1.0.4
+  version: 1.0.5
 
 source:
   url: https://files.pythonhosted.org/packages/f1/22/d754cda73920af8396981bf20dff356fa2652e96da4b246dd60b8d6de9b5/hicplot-1.0.4.tar.gz

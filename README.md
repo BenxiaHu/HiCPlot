@@ -8,22 +8,26 @@ the output file is heatmaps and genome tracks.
 #### usage:
 ``` 
     SquHeatmap \
-    --cooler_file1 "sample1.mcool" \
-    --cooler_file2 "sample2.mcool" \
-    --sampleid1 "sample1" --sampleid2 "sample2" \
-    --bigwig_files_sample1 "sample1.bw" \
-    --bigwig_labels_sample1 "sample1 RNAseq" \
+    --cooler_file1 "Sample1.mcool" \
+    --cooler_file2 "Sample2.mcool" \
+    --bigwig_files_sample1 "Sample1_RNAseq.bw" "Sample1_ChIPseq.bw" \
+    --bigwig_labels_sample1 Sample1_RNA Sample1_ChIP \
     --colors_sample1 "red" \
-    --bigwig_files_sample2 "sample2.bw" \
-    --bigwig_labels_sample2 "sample2 RNAseq" \
+    --bigwig_files_sample2 "Sample2_RNAseq.bw" "Sample2_ChIP.bw" \
+    --bigwig_labels_sample2 Sample2_RNA Sample2_ChIP \
     --colors_sample2 "green" \
     --gtf_file "gencode.v38.annotation.gtf" \
     --resolution 10000 --chrid "chr16" --start 67500000 --end 67700000 \
-    --cmap "autumn_r" --layout 'horizontal' \
+    --cmap "autumn_r" \
     --output_file "Square_horizontal_heatmap.pdf" \
     --track_size 4 \
     --track_spacing 0.5 \
-    --normalization_method "log"
+    --operation divide \
+    --division_method log2_add1 \
+    --diff_cmap bwr --diff_title "log2((sample1+1)/(sample2+1))" \
+    --loop_file_sample1 Sample1_loops.csv \
+    --loop_file_sample2 Sample2_loops.csv \
+    --genes_to_annotate "CTCF" "GFOD2"
 ```
 **Square and Horizontal Heatmap**  
 ![Square and Horizontal Heatmap](./images/Square_horizontal_heatmap.png)
@@ -33,23 +37,25 @@ the output file is heatmaps and genome tracks.
 #### usage: 
 ``` 
     TriHeatmap \
-    --cooler_file1 "sample1.mcool" \
-    --cooler_file2 "sample2.mcool" \
-    --sampleid1 "sample1" --sampleid2 "sample2" \
-    --bigwig_files_sample1 "sample1.bw" \
-    --bigwig_labels_sample1 "sample1 RNAseq" \
+    --cooler_file1 "Sample1.mcool" \
+    --cooler_file2 "Sample2.mcool" \
+    --bigwig_files_sample1 "Sample1_RNAseq.bw" "Sample1_ChIPseq.bw" \
+    --bigwig_labels_sample1 Sample1_RNA Sample1_ChIP \
     --colors_sample1 "red" \
-    --bigwig_files_sample2 "sample2.bw" \
-    --bigwig_labels_sample2 "sample2 RNAseq" \
+    --bigwig_files_sample2 "Sample2_RNAseq.bw" "Sample2_ChIP.bw" \
+    --bigwig_labels_sample2 Sample2_RNA Sample2_ChIP \
     --colors_sample2 "green" \
-    --gtf_file "gencode.v38.annotation.gtf" \
     --resolution 10000 --chrid "chr16" --start 67500000 --end 67700000 \
     --cmap "autumn_r" --layout 'horizontal' \
     --output_file "Triangle_horizontal_heatmap.pdf" \
     --track_width 4 \
     --track_height 1.5 \
     --track_spacing 0.5 \
-    --normalization_method "log"
+    --gtf_file "gencode.v38.annotation.gtf" \
+    --normalization_method "log" \
+    --loop_file_sample1 Sample1_loops.csv \
+    --loop_file_sample2 Sample2_loops.csv \
+    --genes_to_annotate "CTCF" "GFOD2"
 ``` 
 **Triangle and Horizontal Heatmap**  
 ![Triangle and Horizontal Heatmap](./images/Triangle_horizontal_heatmap.png)
@@ -60,23 +66,26 @@ the output file is heatmaps and genome tracks.
 #### usage:
 ``` 
     DiffSquHeatmap \
-    --cooler_file1 "sampleq.mcool" \
-    --cooler_file2 "sample2.mcool" \
-    --bigwig_files_sample1 "sample1.bw" \
-    --bigwig_labels_sample1 "sample1 RNAseq" \
+    --cooler_file1 "Sample1.mcool" \
+    --cooler_file2 "Sample2.mcool" \
+    --bigwig_files_sample1 "Sample1_RNAseq.bw" "Sample1_ChIPseq.bw" \
+    --bigwig_labels_sample1 Sample1_RNA Sample1_ChIP \
     --colors_sample1 "red" \
-    --bigwig_files_sample2 "sample2.bw" \
-    --bigwig_labels_sample2 "sample2 RNAseq" \
+    --bigwig_files_sample2 "Sample2_RNAseq.bw" "Sample2_ChIPseq.bw" \
+    --bigwig_labels_sample2 Sample2_RNA Sample2_ChIP \
     --colors_sample2 "green" \
-    --gtf_file "/data/bxhu/project/database/hg38/gencode.v38.annotation.gtf" \
+    --gtf_file "gencode.v38.annotation.gtf" \
     --resolution 10000 --chrid "chr16" --start 67500000 --end 67700000 \
     --cmap "autumn_r" \
-    --output_file "diffSquheatmap.pdf" \
+    --output_file "Division_Square_vertical_heatmap.pdf" \
     --track_size 4 \
     --track_spacing 0.5 \
     --operation divide \
     --division_method log2_add1 \
-    --diff_cmap bwr --diff_title "log2((sample1+1)/(sample2+1))"
+    --diff_cmap bwr --diff_title "log2((sample1+1)/(sample2+1))" \
+    --loop_file_sample1 Sample1_loops.csv \
+    --loop_file_sample2 Sample2_loops.csv \
+    --genes_to_annotate "CTCF" "GFOD2"
 ```
 
 **Square division Heatmap**  
@@ -91,14 +100,15 @@ the output file is heatmaps and genome tracks.
     --track_width 4 \
     --track_height 1.5 \
     --track_spacing 0.5 \
-    --bigwig_files_sample1 "/data/bxhu/project/ZZL/RNAseq/bam/bw/HethVEH_10bp.bw" \
-    --bigwig_labels_sample1 "sample1 RNAseq" \
+    --bigwig_files_sample1 "Sample1_RNAseq.bw" "Sample1_ChIPseq.bw" \
+    --bigwig_labels_sample1 Sample1_RNA Sample1_ChIP \
     --colors_sample1 "red" \
-    --bigwig_files_sample2 "/data/bxhu/project/ZZL/RNAseq/bam/bw/SCAVEH_10bp.bw" \
-    --bigwig_labels_sample2 "sample2 RNAseq" \
+    --bigwig_files_sample2 "Sample2_RNAseq.bw" "Sample2_ChIPseq.bw" \
+    --bigwig_labels_sample2 Sample2_RNA Sample2_ChIP \
     --colors_sample2 "green" \
-    --gtf_file "/data/bxhu/project/database/hg38/gencode.v38.annotation.gtf" \
-    --output_file "track_horizontal.pdf"
+    --gtf_file "gencode.v38.annotation.gtf" \
+    --output_file "track_horizontal.pdf" \
+    --genes_to_annotate "CTCF" "GFOD2"
 ```
 **Horizontal Track**  
 ![Horizontal track](./images/track_horizontal.png)
@@ -115,7 +125,7 @@ matplotlib
 pyBigWig  
 pyranges  
 
-#### pip install HiCPlot==1.0.4
-https://pypi.org/project/HiCPlot/1.0.4/  
+#### pip install HiCPlot==1.0.5
+https://pypi.org/project/HiCPlot/1.0.5/  
 
 
