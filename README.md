@@ -60,6 +60,37 @@ the output file is heatmaps and genome tracks.
 **Triangle and Horizontal Heatmap**  
 ![Triangle and Horizontal Heatmap](./images/Triangle_horizontal_heatmap.png)
 
+#### plot lower and upper combined square heatmaps from two Hi-C contact matrices
+the format of input file is cool format.  
+the output file is heatmaps and genome tracks.
+#### usage:
+```
+    upper_lower_triangle_heatmap \
+    --cooler_file1 "/data/bxhu/project/DLR_AD/result/cooltools/AD_merge.mcool" \
+    --cooler_file2 "/data/bxhu/project/DLR_AD/result/cooltools/Old_merge.mcool" \
+    --bigwig_files_sample1 "/data/bxhu/project/ZZL/RNAseq/bam/bw/HethVEH_10bp.bw" \
+                            "/data/bxhu/project/ZZL/ATACseq_CD8/bigwig/Healthy.bw" \
+    --bigwig_labels_sample1 Sample1_RNA Sample1_ChIP \
+    --colors_sample1 "red" \
+    --bigwig_files_sample2 "/data/bxhu/project/ZZL/RNAseq/bam/bw/SCAVEH_10bp.bw" \
+                           "/data/bxhu/project/ZZL/ATACseq_CD8/bigwig/SCD.bw" \
+    --bigwig_labels_sample2 Sample2_RNA Sample2_ChIP \
+    --colors_sample2 "green" \
+    --gtf_file "/data/bxhu/project/database/hg38/gencode.v38.annotation.gtf" \
+    --resolution 10000 --chrid "chr16" --start 67500000 --end 67700000 \
+    --cmap "autumn_r" \
+    --output_file "upper_lwoer_triangle_heatmap_11212024_2.pdf" \
+    --track_size 4 \
+    --track_spacing 0.5 \
+    --loop_file_sample1 /data/bxhu/project/DLR_AD/result/HiC/mustache/AD_merged_5kb_loops.csv \
+    --loop_file_sample2 /data/bxhu/project/DLR_AD/result/HiC/mustache/Old_merged_5kb_loops.csv \
+    --genes_to_annotate "CTCF" "GFOD2" \
+    --normalization_method 'raw' --title "Sample1 vs Sample2"
+```
+
+**lower and upper combined square Heatmap**  
+![lower and upper combined square Heatmap](./images/lower_upper_combined_square_Heatmap.png)
+
 #### plot square heatmaps for difference betwee two Hi-C contact matrices
 the format of input file is cool format.  
 the output file is heatmaps and genome tracks.  
@@ -125,7 +156,7 @@ matplotlib
 pyBigWig  
 pyranges  
 
-#### pip install HiCPlot==1.0.5
-https://pypi.org/project/HiCPlot/1.0.5/  
+#### pip install HiCPlot==1.0.6
+https://pypi.org/project/HiCPlot/1.0.6/  
 
 

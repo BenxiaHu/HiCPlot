@@ -2,14 +2,18 @@
 import argparse
 import os
 import pandas as pd
-from matplotlib.colors import Normalize
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 import pyBigWig
 import pyranges as pr
 import numpy as np
 import matplotlib.pyplot as plt
 import cooler
 from matplotlib.ticker import EngFormatter
+import itertools
+import sys
+import scipy.sparse
 import matplotlib.gridspec as gridspec
+import matplotlib.colors as mcolors
 from matplotlib.patches import Arc
 from collections import defaultdict
 
@@ -98,9 +102,7 @@ def plot_genes(ax, gtf_file, region, genes_to_annotate=None, color='blue', track
     ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, pos: f'{x / 1e6:.2f}'))
 
 def read_bigwig(file_path, region):
-    """
-    Read BigWig or bedGraph file and return positions and values.
-    """
+    """Read BigWig or bedGraph file and return positions and values."""
     chrom, start, end = region
     file_extension = os.path.splitext(file_path)[1].lower()
 
@@ -114,7 +116,7 @@ def read_bigwig(file_path, region):
     elif file_extension in ['.bedgraph', '.bg']:
         # Read the bedGraph file using pandas
         # Assuming bedGraph files have columns: chrom, start, end, value
-        bedgraph_df = pd.read_csv(file_path, sep='\t', header=None, comment='#',
+        bedgraph_df = pd.read_csv(file_path, sep='\t', header=None, comment='#', 
                                   names=['chrom', 'start', 'end', 'value'])
         # Filter the data for the specified region
         region_data = bedgraph_df[
@@ -125,7 +127,7 @@ def read_bigwig(file_path, region):
         if region_data.empty:
             return None, None
         # Prepare the positions and values
-        positions = np.sort(np.unique(np.concatenate([region_data['start'].values,
+        positions = np.sort(np.unique(np.concatenate([region_data['start'].values, 
                                                       region_data['end'].values])))
         values = np.zeros_like(positions, dtype=float)
         for idx in range(len(region_data)):
@@ -160,7 +162,6 @@ def get_track_min_max(bigwig_files_sample1, bigwig_labels_sample1,
     def extract_type(label):
         return label.split("_")[1] if label and "_" in label else 'Unknown'
 
-
     # Combine sample1 and sample2 BigWig files and labels
     combined_files = bigwig_files_sample1 + bigwig_files_sample2
     combined_labels = bigwig_labels_sample1 + bigwig_labels_sample2
@@ -183,20 +184,49 @@ def get_track_min_max(bigwig_files_sample1, bigwig_labels_sample1,
 
     return type_min_max
 
-
 def plot_seq(ax, file_path, region, color='blue', y_min=None, y_max=None):
-    """
-    Plot RNA-seq/ChIP-seq expression from BigWig or bedGraph file on given axis.
-    """
-    positions, values = read_bigwig(file_path, region)
-    if positions is None or values is None:
-        print(f"No data found in the specified region ({region[0]}:{region[1]}-{region[2]}) in {file_path}")
-        ax.axis('off')
-        return
+    """Plot RNA-seq/ChIP-seq expression from BigWig or bedGraph file on given axis."""
+    chrom, start, end = region
+    file_extension = os.path.splitext(file_path)[1].lower()
 
+    if file_extension in ['.bw', '.bigwig']:
+        # Open the BigWig file
+        bw = pyBigWig.open(file_path)
+        # Fetch values from the region
+        values = bw.values(chrom, start, end, numpy=True)
+        bw.close()  # Close the BigWig file
+        positions = np.linspace(start, end, len(values))
+    elif file_extension in ['.bedgraph', '.bg']:
+        # Read the bedGraph file using pandas
+        # Assuming bedGraph files have columns: chrom, start, end, value
+        bedgraph_df = pd.read_csv(file_path, sep='\t', header=None, comment='#', 
+                                  names=['chrom', 'start', 'end', 'value'])
+        # Filter the data for the specified region
+        region_data = bedgraph_df[
+            (bedgraph_df['chrom'] == chrom) &
+            (bedgraph_df['end'] > start) &
+            (bedgraph_df['start'] < end)
+        ]
+        if region_data.empty:
+            print(f"No data found in the specified region ({chrom}:{start}-{end}) in {file_path}")
+            ax.axis('off')  # Hide the axis if no data
+            return
+        # Prepare the positions and values
+        positions = np.sort(np.unique(np.concatenate([region_data['start'].values, 
+                                                      region_data['end'].values])))
+        values = np.zeros_like(positions, dtype=float)
+        for idx in range(len(region_data)):
+            s = region_data.iloc[idx]['start']
+            e = region_data.iloc[idx]['end']
+            v = region_data.iloc[idx]['value']
+            mask = (positions >= s) & (positions <= e)
+            values[mask] = v
+    else:
+        raise ValueError(f"Unsupported file format: {file_extension}. Supported formats are BigWig (.bw) and bedGraph (.bedgraph, .bg).")
+    
     # Plot the RNA-seq/ChIP-seq expression as a filled line plot
     ax.fill_between(positions, values, color=color, alpha=0.7)
-    ax.set_xlim(region[1], region[2])
+    ax.set_xlim(start, end)
     if y_min is not None and y_max is not None:
         ax.set_ylim(y_min, y_max)
     elif y_max is not None:
@@ -206,12 +236,10 @@ def plot_seq(ax, file_path, region, color='blue', y_min=None, y_max=None):
     ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, pos: f'{x / 1e6:.2f}'))
 
 def plot_bed(ax, bed_file, region, color='green', linewidth=1, label=None):
-    """
-    Plot BED file annotations on the given axis.
-    """
+    """Plot BED file annotations on the given axis."""
     chrom, start, end = region
     # Read the BED file
-    bed_df = pd.read_csv(bed_file, sep='\t', header=None, comment='#',
+    bed_df = pd.read_csv(bed_file, sep='\t', header=None, comment='#', 
                          names=['chrom', 'start', 'end'] + [f'col{i}' for i in range(4, 10)])
     # Filter for the region and chromosome
     region_bed = bed_df[
@@ -220,10 +248,10 @@ def plot_bed(ax, bed_file, region, color='green', linewidth=1, label=None):
         (bed_df['start'] < end)
     ]
     if region_bed.empty:
-        print(f"No BED entries found in the specified region ({chrom}:{start}-{end}) in {bed_file}.")
+        print(f"No BED entries found in the specified region ({chrom}:{start}-{end}) in {bed_file}")
         ax.axis('off')
         return
-
+    
     for _, entry in region_bed.iterrows():
         bed_start = max(entry['start'], start)
         bed_end = min(entry['end'], end)
@@ -236,12 +264,22 @@ def plot_bed(ax, bed_file, region, color='green', linewidth=1, label=None):
                 linewidth=linewidth
             )
         )
-
+    
     ax.set_xlim(start, end)
     ax.set_ylim(0, 1)
     ax.axis('off')  # Hide axis for BED tracks
     if label:
         ax.set_title(label, fontsize=8)
+
+def pcolormesh_square(ax, matrix, start, end, cmap='autumn_r', vmin=None, vmax=None, *args, **kwargs):
+    """
+    Plot the matrix as a heatmap on the given axis.
+    """
+    if matrix is None:
+        return None
+    im = ax.imshow(matrix, aspect='auto', origin='upper',
+                   extent=[start, end, end, start], cmap=cmap, vmin=vmin, vmax=vmax, *args, **kwargs)
+    return im
 
 def plot_loops(ax, loop_file, region, color='purple', alpha=0.5, linewidth=1, label=None):
     """
@@ -271,6 +309,7 @@ def plot_loops(ax, loop_file, region, color='purple', alpha=0.5, linewidth=1, la
 
     if loop_df.empty:
         print(f"No loops detected in the specified region ({chrom}:{start}-{end}) in {loop_file}.")
+        ax.axis('off')
         return
     else:
         print(f"Loops detected in the specified region ({chrom}:{start}-{end}) in {loop_file}.")
@@ -322,113 +361,88 @@ def plot_loops(ax, loop_file, region, color='purple', alpha=0.5, linewidth=1, la
     if label:
         ax.set_title(label, fontsize=8)  # Add sample name above the loop track
 
-def pcolormesh_square(ax, matrix, start, end, cmap='bwr', vmin=None, vmax=None, *args, **kwargs):
-    """
-    Plot the difference matrix as a heatmap on the given axis.
-    """
-    if matrix is None:
-        return None
-    im = ax.imshow(matrix, aspect='auto', origin='upper',
-                   extent=[start, end, end, start], cmap=cmap, vmin=vmin, vmax=vmax, *args, **kwargs)
-    return im
-
-def plot_heatmaps(
-    cooler_file1,
-    bigwig_files_sample1=[], bigwig_labels_sample1=[],colors_sample1="red",
-    bed_files_sample1=[], bed_labels_sample1=[],
-    loop_file_sample1=None, loop_file_sample2=None,
-    gtf_file=None, resolution=None,
-    start=None, end=None, chrid=None,
-    cmap='autumn_r', vmin=None, vmax=None,
-    output_file='comparison_heatmap.pdf',
-    cooler_file2=None,
-    bigwig_files_sample2=[], bigwig_labels_sample2=[], colors_sample2="blue",
-    bed_files_sample2=[], bed_labels_sample2=[],
-    track_size=5, track_spacing=0.5,
-    operation='subtract', division_method='raw',
-    diff_cmap='bwr', diff_title=None,
-    genes_to_annotate=None
-):
-    """
-    Plot the difference heatmap along with BigWig, BED tracks, gene annotations, and chromatin loops.
-
-    Parameters:
-    - All parameters are as defined in the function signature.
-    """
+def plot_heatmaps(cooler_file1, sampleid1,
+                 bigwig_files_sample1=[], bigwig_labels_sample1=[], colors_sample1="red",
+                 bed_files_sample1=[], bed_labels_sample1=[],
+                 loop_file_sample1=None, loop_file_sample2=None,
+                 gtf_file=None, resolution=None,
+                 start=None, end=None, chrid=None,
+                 cmap='autumn_r', vmin=None, vmax=None,
+                 output_file='comparison_heatmap.pdf',
+                 cooler_file2=None, sampleid2=None,
+                 bigwig_files_sample2=[], bigwig_labels_sample2=[], colors_sample2="blue",
+                 bed_files_sample2=[], bed_labels_sample2=[], 
+                 track_size=5, track_spacing=0.5, normalization_method='raw',
+                 genes_to_annotate=None,title=None):
     plt.rcParams['font.size'] = 8
-    # Adjust track spacing if needed
-    track_spacing = track_spacing * 1.2
-    single_sample = len(bigwig_files_sample2) == 0
-
+    # Set parameters
     region = (chrid, start, end)
-
-    # Load cooler data for case
+    
+    # Load cooler data for Sample1
     clr1 = cooler.Cooler(f'{cooler_file1}::resolutions/{resolution}')
     data1 = clr1.matrix(balance=True).fetch(region).astype(float)
-
-    # Load cooler data for control
-    if cooler_file2:
+    
+    # Load cooler data for Sample2 if provided
+    single_sample = cooler_file2 is None
+    if not single_sample:
         clr2 = cooler.Cooler(f'{cooler_file2}::resolutions/{resolution}')
         data2 = clr2.matrix(balance=True).fetch(region).astype(float)
     else:
-        data2 = np.zeros_like(data1)  # If no control, set to zeros
-
-    # Compute difference matrix
-    data_diff = None  # Initialize
-
-    if operation == 'subtract':
-        data_diff = data1 - data2
-    elif operation == 'divide':
-        if division_method == 'raw':
-            # Raw division
-            with np.errstate(divide='ignore', invalid='ignore'):
-                data_diff = np.divide(data1, data2)
-                data_diff[~np.isfinite(data_diff)] = 0  # Replace inf and NaN with 0
-        elif division_method == 'log2':
-            # Log2(case / control)
-            with np.errstate(divide='ignore', invalid='ignore'):
-                ratio = np.divide(data1, data2)
-                ratio[ratio <= 0] = np.nan  # Avoid log2 of non-positive numbers
-                data_diff = np.log2(ratio)
-        elif division_method == 'add1':
-            # (case +1) / (control +1)
-            with np.errstate(divide='ignore', invalid='ignore'):
-                data_diff = np.divide(data1 + 1, data2 + 1)
-                data_diff[~np.isfinite(data_diff)] = 0
-        elif division_method == 'log2_add1':
-            # log2((case +1) / (control +1))
-            with np.errstate(divide='ignore', invalid='ignore'):
-                ratio = np.divide(data1 + 1, data2 + 1)
-                ratio[ratio <= 0] = np.nan
-                data_diff = np.log2(ratio)
-        else:
-            raise ValueError("Invalid division_method. Choose among 'raw', 'log2', 'add1', 'log2_add1'.")
+        data2 = np.zeros_like(data1)  # If no second sample, set to zeros
+    
+    # Apply normalization to Hi-C matrices
+    if normalization_method == 'raw':
+        normalized_data1 = data1
+        normalized_data2 = data2 if not single_sample else None
+    elif normalization_method == 'log2':
+        normalized_data1 = np.log2(np.maximum(data1, 1e-10))
+        if not single_sample:
+            normalized_data2 = np.log2(np.maximum(data2, 1e-10))
+    elif normalization_method == 'log2_add1':
+        normalized_data1 = np.log2(data1 + 1)
+        if not single_sample:
+            normalized_data2 = np.log2(data2 + 1)
+    elif normalization_method == 'log':
+        normalized_data1 = np.log(np.maximum(data1, 1e-10))
+        if not single_sample:
+            normalized_data2 = np.log(np.maximum(data2, 1e-10))
+    elif normalization_method == 'log_add1':
+        normalized_data1 = np.log(data1 + 1)
+        if not single_sample:
+            normalized_data2 = np.log(data2 + 1)
     else:
-        raise ValueError("Invalid operation. Choose 'subtract' or 'divide'.")
+        raise ValueError(f"Unsupported normalization method: {normalization_method}")
+    
+    # Create combined matrix: upper triangle from data1, lower triangle from data2, diagonal set to np.nan
+    combined_matrix = np.full_like(data1, np.nan)
+    triu_indices = np.triu_indices_from(data1, k=1)
+    tril_indices = np.tril_indices_from(data1, k=-1)
 
-    # Determine color limits for difference heatmap
-    if data_diff is not None:
-        # Manually set symmetric vmin and vmax based on the maximum absolute value
-        max_abs = np.nanmax(np.abs(data_diff))
-        vmin_diff = -max_abs
-        vmax_diff = max_abs
+    combined_matrix[triu_indices] = normalized_data1[triu_indices]
+    if not single_sample:
+        combined_matrix[tril_indices] = normalized_data2[tril_indices]
     else:
-        vmin_diff = None
-        vmax_diff = None
+        combined_matrix[tril_indices] = 0  # If single sample, set lower triangle to zero
+    # Diagonal is already set to np.nan
+
+    # Determine color limits for combined heatmap
+    if vmin is None:
+        vmin_combined = np.nanmin(combined_matrix)
+    else:
+        vmin_combined = vmin
+    if vmax is None:
+        vmax_combined = np.nanmax(combined_matrix)
+    else:
+        vmax_combined = vmax
 
     # Define GridSpec for vertical layout
     # Layout:
-    # Row0: Difference Heatmap
-    # Row1: Colorbar for difference heatmap
+    # Row0: Combined Hi-C Heatmap
+    # Row1: Colorbar for combined heatmap
     # Row2: Chromatin Loops for sample1
-    # Row3: Chromatin Loops for sample2
+    # Row3: Chromatin Loops for sample2 (if provided)
     # Rows4 to (4 + max_bigwig_bed_tracks): BigWig and BED tracks
     # Last Row: Gene Annotations
-    ncols = 1
-    max_bigwig_sample = len(bigwig_files_sample1) + len(bigwig_files_sample2)
-    max_bed_sample = len(bed_files_sample1) + len(bed_files_sample2)
-    max_tracks = max_bigwig_sample + max_bed_sample
-
     num_colorbars = 1
     num_loops = 0
     if loop_file_sample1:
@@ -436,15 +450,17 @@ def plot_heatmaps(
     if loop_file_sample2:
         num_loops += 1
     num_genes = 1 if gtf_file else 0
-    # Each BigWig and BED track has one plot
-    num_rows = 1 + num_colorbars + num_loops + max_tracks + num_genes
+    # Calculate the number of BigWig and BED tracks
+    max_num_bigwig_files = len(bigwig_files_sample1) + len(bigwig_files_sample2)
+    max_num_bed_files = len(bed_files_sample1) + len(bed_files_sample2)
+    max_bigwig_bed_tracks = max_num_bigwig_files + max_num_bed_files
+
+    num_rows = 2 + num_loops + max_bigwig_bed_tracks + num_genes
 
     # Define height ratios
-    small_colorbar_height = 0.1
-    loop_track_height = 1  # Height for loop arcs
-    height_ratios = [track_size] + [small_colorbar_height] + [loop_track_height]*num_loops + [track_size/5]*max_tracks + [track_size/5]*num_genes
+    height_ratios = [track_size] + [0.1] + [0.3]*num_loops + [track_size/5]*max_bigwig_bed_tracks + [track_size/5]*num_genes
 
-    gs = gridspec.GridSpec(num_rows, 1, height_ratios=height_ratios)
+    gs = gridspec.GridSpec(num_rows, 1, height_ratios=height_ratios, hspace=track_spacing*1.5)
     # Define default figsize
     width = track_size
     height = sum(height_ratios) + 2
@@ -453,84 +469,98 @@ def plot_heatmaps(
     # Create figure with calculated size
     f = plt.figure(figsize=figsize)
 
-    # Plot Difference Heatmap
-    ax_diff = f.add_subplot(gs[0, 0])
-    im_diff = pcolormesh_square(ax_diff, data_diff, region[1], region[2], cmap=diff_cmap, vmin=vmin_diff, vmax=vmax_diff)
+    # Plot Combined Hi-C Heatmap
+    ax_combined = f.add_subplot(gs[0, 0])
+    im_combined = pcolormesh_square(ax_combined, combined_matrix, region[1], region[2], cmap=cmap, vmin=vmin_combined, vmax=vmax_combined)
     # Format x-axis ticks
-    ax_diff.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, pos: f'{x / 1e6:.2f}'))
-    ax_diff.set_title(diff_title if diff_title else "Difference Heatmap", fontsize=8)
-    ax_diff.set_ylim(region[2], region[1])  # Flip y-axis to match genomic coordinates
-    ax_diff.set_xlim(start, end)
+    ax_combined.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, pos: f'{x / 1e6:.2f}'))
+    ax_combined.set_title(title if title else "Combined Hi-C Heatmap", fontsize=10)
+    ax_combined.set_ylim(end, start)  # Flip y-axis to match genomic coordinates
+    ax_combined.set_xlim(start, end)
+    ax_combined.set_aspect('equal')  # Ensure square aspect
+    # Add labels for Sample1 and Sample2
+    #label_offset = (end - start) * 0.02  # 2% of the region length
+    #ax_combined.text(end - label_offset,start + label_offset, 'Sample1', color='black', fontsize=8, ha='right', va='top')
+    #ax_combined.text(end - label_offset, start + label_offset, 'Sample2', color='black', fontsize=8, ha='left', va='bottom')
+    # Add labels for Sample1 and Sample2 using axes fraction
+    ax_combined.text(0.95, 0.95, 'Sample1', transform=ax_combined.transAxes, 
+                color='black', fontsize=8, ha='right', va='top', 
+                bbox=dict(facecolor='white', edgecolor='none', alpha=0.7))
+    ax_combined.text(0.05, 0.05, 'Sample2', transform=ax_combined.transAxes, 
+                color='black', fontsize=8, ha='left', va='bottom', 
+                bbox=dict(facecolor='white', edgecolor='none', alpha=0.7))
 
-    # Create a colorbar for the difference heatmap
-    cax_diff = f.add_subplot(gs[1, 0])
-    cbar_diff = plt.colorbar(im_diff, cax=cax_diff, orientation='horizontal')
-    cbar_diff.ax.tick_params(labelsize=8)
+    # Create a colorbar for the combined heatmap
+    cax_combined = f.add_subplot(gs[1, 0])
+    cbar_combined = plt.colorbar(im_combined, cax=cax_combined, orientation='horizontal')
+    cbar_combined.ax.tick_params(labelsize=8)
+    cax_combined.xaxis.set_label_position('bottom')
+    cax_combined.xaxis.set_ticks_position('bottom')
+    cbar_combined.set_label(normalization_method, labelpad=3)
+    cbar_combined.ax.xaxis.set_label_position('top')
 
-    # Plot Chromatin Loops
     current_row = 2
+    # Plot Chromatin Loops for Sample1
     if loop_file_sample1:
         ax_loop1 = f.add_subplot(gs[current_row, 0])
-        plot_loops(ax_loop1, loop_file_sample1, region, color=colors_sample1, alpha=0.7, linewidth=1, label='Sample1 Loops')
+        plot_loops(ax_loop1, loop_file_sample1, region, color=colors_sample1, alpha=0.7, linewidth=1, label=f"{sampleid1} Loops")
         current_row += 1
+    # Plot Chromatin Loops for Sample2 if provided
     if loop_file_sample2:
         ax_loop2 = f.add_subplot(gs[current_row, 0])
-        plot_loops(ax_loop2, loop_file_sample2, region, color=colors_sample2, alpha=0.7, linewidth=1, label='Sample2 Loops')
+        plot_loops(ax_loop2, loop_file_sample2, region, color=colors_sample2, alpha=0.7, linewidth=1, label=f"{sampleid2} Loops")
         current_row += 1
 
     # Compute global min and max per BigWig type
     type_min_max = get_track_min_max(bigwig_files_sample1, bigwig_labels_sample1,
-                                        bigwig_files_sample2, bigwig_labels_sample2,
-                                        region=region)
+                                    bigwig_files_sample2, bigwig_labels_sample2,
+                                    region=region)
 
-    # Plot BigWig tracks for Sample1 and Sample2
-    # Sample1 BigWig
-    track_start_row = current_row
+    # Plot BigWig and BED tracks
+    # Plot BigWig tracks for Sample1
+    current_row = 2 + num_loops
     if bigwig_files_sample1:
         for i in range(len(bigwig_files_sample1)):
-            ax_bw = f.add_subplot(gs[track_start_row + i, 0])
-            bw_type = bigwig_labels_sample1[i].split("_")[1]
+            ax_bw = f.add_subplot(gs[current_row + i, 0])
+            # Extract type from label
+            bw_type = bigwig_labels_sample1[i].split("_")[1] if "_" in bigwig_labels_sample1[i] else 'Unknown'
             y_min, y_max = type_min_max.get(bw_type, (None, None))
             plot_seq(ax_bw, bigwig_files_sample1[i], region, color=colors_sample1, 
-                y_min=y_min, y_max=y_max)
+                     y_min=y_min, y_max=y_max)
             ax_bw.set_title(f"{bigwig_labels_sample1[i]}", fontsize=8)
             ax_bw.set_xlim(start, end)
             if y_min is not None and y_max is not None:
                 ax_bw.set_ylim(y_min, y_max * 1.1)
-
-    # Plot BigWig tracks for Sample2
+    current_row = 2 + num_loops + len(bigwig_files_sample1)
+    # Plot BigWig tracks for Sample2 if provided
     if bigwig_files_sample2:
         for j in range(len(bigwig_files_sample2)):
-            ax_bw = f.add_subplot(gs[track_start_row + len(bigwig_files_sample1) + j, 0])
-            #bw_index = len(bigwig_files_sample2) + j
-            bw_type = bigwig_labels_sample2[j].split("_")[1]
+            ax_bw = f.add_subplot(gs[current_row + j, 0])
+            # Extract type from label
+            bw_type = bigwig_labels_sample2[j].split("_")[1] if "_" in bigwig_labels_sample2[j] else 'Unknown'
             y_min, y_max = type_min_max.get(bw_type, (None, None))
             plot_seq(ax_bw, bigwig_files_sample2[j], region, color=colors_sample2, 
-                y_min=y_min, y_max=y_max)
+                     y_min=y_min, y_max=y_max)
             ax_bw.set_title(f"{bigwig_labels_sample2[j]}", fontsize=8)
             ax_bw.set_xlim(start, end)
             if y_min is not None and y_max is not None:
                 ax_bw.set_ylim(y_min, y_max * 1.1)
 
-    bed_start_row = track_start_row + len(bigwig_files_sample1) + len(bigwig_files_sample2)
-
-    # Plot BED tracks for Sample1 and Sample2
-    # Sample1 BED
+    # Update current_row after BigWig tracks
+    current_row = 2 + num_loops + len(bigwig_files_sample1) + len(bigwig_files_sample2)
+    # Plot BED tracks for Sample1
     if bed_files_sample1:
         for k in range(len(bed_files_sample1)):
-            ax_bed = f.add_subplot(gs[bed_start_row + k, 0])
-            label = bed_labels_sample1[k]
-            plot_bed(ax_bed, bed_files_sample1[k], region, 
-                color=colors_sample1, linewidth=1, label=label)
+            ax_bed = f.add_subplot(gs[current_row + k, 0])
+            plot_bed(ax_bed, bed_files_sample1[k], region, color=colors_sample1, label=bed_labels_sample1[k])
             ax_bed.set_title(f"{bed_labels_sample1[k]}", fontsize=8)
 
-    # Sample2 BED
+    current_row = 2 + num_loops + len(bigwig_files_sample1) + len(bigwig_files_sample2) + len(bed_files_sample1)
+    # Plot BED tracks for Sample2 if provided
     if bed_files_sample2:
         for l in range(len(bed_files_sample2)):
-            ax_bed = f.add_subplot(gs[bed_start_row + len(bed_files_sample1) + l, 0])
-            label = bed_labels_sample2[l]
-            plot_bed(ax_bed, bed_files_sample2[l], region, 
-                color=colors_sample2, linewidth=1, label=label)
+            ax_bed = f.add_subplot(gs[current_row+ l, 0])
+            plot_bed(ax_bed, bed_files_sample2[l], region, color=colors_sample2, label=bed_labels_sample2[l])
             ax_bed.set_title(f"{bed_labels_sample2[l]}", fontsize=8)
 
     # Plot Genes if GTF file is provided
@@ -540,16 +570,16 @@ def plot_heatmaps(
         ax_genes.set_xlim(start, end)
 
     # Adjust layout and save the figure
-    plt.subplots_adjust(hspace=0.5)
+    plt.subplots_adjust(left=0.1, right=0.95, top=0.95, bottom=0.1)
     f.savefig(output_file, bbox_inches='tight')
     plt.close(f)
 
 def main():
-    parser = argparse.ArgumentParser(description='Plot difference heatmap from cooler files with BigWig, BED tracks, gene annotations, and chromatin loops.')
+    parser = argparse.ArgumentParser(description='Plot combined Hi-C heatmap from two cooler files with BigWig, BED tracks, gene annotations, and chromatin loops.')
 
     # Required arguments
-    parser.add_argument('--cooler_file1', type=str, required=True, help='Path to the case .cool or .mcool file.')
-    parser.add_argument('--cooler_file2', type=str, required=False, help='Path to the control .cool or .mcool file.', default=None)
+    parser.add_argument('--cooler_file1', type=str, required=True, help='Path to the first sample .cool or .mcool file.')
+    parser.add_argument('--cooler_file2', type=str, required=True, help='Path to the second sample .cool or .mcool file.')
     parser.add_argument('--resolution', type=int, required=True, help='Resolution for the cooler data.')
     parser.add_argument('--start', type=int, required=True, help='Start position for the region of interest.')
     parser.add_argument('--end', type=int, required=True, help='End position for the region of interest.')
@@ -557,79 +587,76 @@ def main():
     parser.add_argument('--gtf_file', type=str, required=True, help='Path to the GTF file for gene annotations.')
 
     # Optional arguments
-    parser.add_argument('--cmap', type=str, default='autumn_r', help='Colormap to be used for plotting other tracks.')
-    parser.add_argument('--vmin', type=float, default=None, help='Minimum value for normalization of other tracks.')
-    parser.add_argument('--vmax', type=float, default=None, help='Maximum value for normalization of other tracks.')
-    parser.add_argument('--output_file', type=str, default='comparison_heatmap.pdf', help='Filename for the saved comparison heatmap PDF.')
+    parser.add_argument('--cmap', type=str, default='autumn_r', help='Colormap to be used for the combined heatmap.')
+    parser.add_argument('--vmin', type=float, default=None, help='Minimum value for normalization of the combined heatmap.')
+    parser.add_argument('--vmax', type=float, default=None, help='Maximum value for normalization of the combined heatmap.')
+    parser.add_argument('--output_file', type=str, default='combined_hic_heatmap.pdf', help='Filename for the saved combined heatmap PDF.')
 
     # BigWig arguments
-    parser.add_argument('--bigwig_files_sample1', type=str, nargs='*', help='Paths to BigWig files for case sample.', default=[])
-    parser.add_argument('--bigwig_labels_sample1', type=str, nargs='*', help='Labels for BigWig tracks of case sample.', default=[])
-    parser.add_argument('--colors_sample1', type=str, default='red', help='Colors for case BigWig tracks.')
-    parser.add_argument('--bigwig_files_sample2', type=str, nargs='*', help='Paths to BigWig files for control sample.', default=[])
-    parser.add_argument('--bigwig_labels_sample2', type=str, nargs='*', help='Labels for BigWig tracks of control sample.', default=[])
-    parser.add_argument('--colors_sample2', type=str, default='blue', help='Colors for control BigWig tracks.')
+    parser.add_argument('--bigwig_files_sample1', type=str, nargs='*', help='Paths to BigWig files for sample 1.', default=[])
+    parser.add_argument('--bigwig_labels_sample1', type=str, nargs='*', help='Labels for BigWig tracks of sample 1.', default=[])
+    parser.add_argument('--colors_sample1', type=str, default="red", help='Colors for sample 1 BigWig tracks.')
+    parser.add_argument('--bigwig_files_sample2', type=str, nargs='*', help='Paths to BigWig files for sample 2.', default=[])
+    parser.add_argument('--bigwig_labels_sample2', type=str, nargs='*', help='Labels for BigWig tracks of sample 2.', default=[])
+    parser.add_argument('--colors_sample2', type=str, default="blue", help='Colors for sample 2 BigWig tracks.')
 
     # BED arguments
-    parser.add_argument('--bed_files_sample1', type=str, nargs='*', help='Paths to BED files for case sample.', default=[])
-    parser.add_argument('--bed_labels_sample1', type=str, nargs='*', help='Labels for BED tracks of case sample.', default=[])
-    parser.add_argument('--bed_files_sample2', type=str, nargs='*', help='Paths to BED files for control sample.', default=[])
-    parser.add_argument('--bed_labels_sample2', type=str, nargs='*', help='Labels for BED tracks of control sample.', default=[])
+    parser.add_argument('--bed_files_sample1', type=str, nargs='*', help='Paths to BED files for sample 1.', default=[])
+    parser.add_argument('--bed_labels_sample1', type=str, nargs='*', help='Labels for BED tracks of sample 1.', default=[])
+    parser.add_argument('--bed_files_sample2', type=str, nargs='*', help='Paths to BED files for sample 2.', default=[])
+    parser.add_argument('--bed_labels_sample2', type=str, nargs='*', help='Labels for BED tracks of sample 2.', default=[])
 
-    # Loop arguments
-    parser.add_argument('--loop_file_sample1', type=str, required=False, help='Path to the chromatin loop file for sample1.', default=None)
-    parser.add_argument('--loop_file_sample2', type=str, required=False, help='Path to the chromatin loop file for sample2.', default=None)
+    # Loop file arguments
+    parser.add_argument('--loop_file_sample1', type=str, help='Path to the chromatin loop file for sample 1.', default=None)
+    parser.add_argument('--loop_file_sample2', type=str, help='Path to the chromatin loop file for sample 2.', default=None)
 
-    # New Arguments for Division Methods and Color Mapping
-    parser.add_argument('--operation', type=str, default='subtract', choices=['subtract', 'divide'],
-                        help="Operation to compute the difference matrix: 'subtract' (case - control) or 'divide' (case / control).")
-    parser.add_argument('--division_method', type=str, default='raw', choices=['raw', 'log2', 'add1', 'log2_add1'],
-                        help="Method for division when '--operation divide' is selected: 'raw' (case/control), 'log2' (log2(case/control)), 'add1' ((case+1)/(control+1)), or 'log2_add1' (log2((case+1)/(control+1))).")
-    parser.add_argument('--diff_cmap', type=str, default='bwr', help="Colormap for difference matrix. Default is 'bwr' (Blue-White-Red).")
-    parser.add_argument('--diff_title', type=str, default=None, help="Title for difference matrix.")
+    # Normalization Method Argument
+    parser.add_argument('--normalization_method', type=str, default='raw', choices=['raw', 'log2', 'log2_add1','log','log_add1'],
+                        help="Method for normalization: 'raw', 'log2', 'log2_add1', 'log', or 'log_add1'.")
 
-    # Track dimensions and spacing
-    parser.add_argument('--track_size', type=float, default=5, help='Height of each track (in inches).')
+    parser.add_argument('--track_size', type=float, default=5, help='Height of the heatmap track (in inches).')
     parser.add_argument('--track_spacing', type=float, default=0.5, help='Spacing between tracks (in inches).')
 
     # Gene annotation arguments
     parser.add_argument('--genes_to_annotate', type=str, nargs='*', help='Gene names to annotate.', default=None)
-    parser.add_argument("-V", "--version", action="version", version=f"HiCHeatmap {__version__}",
-                      help="Print version and exit")
+    parser.add_argument('--title', type=str, nargs='*', help='title of the heatmap.', default=None)
+    parser.add_argument("-V", "--version", action="version",version="TriHeatmap {}".format(__version__)\
+                      ,help="Print version and exit")
     args = parser.parse_args()
 
-    # Call the plot_heatmaps function with the parsed arguments
+# Call the plotting function
     plot_heatmaps(
-    cooler_file1=args.cooler_file1,
-    bigwig_files_sample1=args.bigwig_files_sample1,
-    bigwig_labels_sample1=args.bigwig_labels_sample1,
-    colors_sample1=args.colors_sample1,
-    bed_files_sample1=args.bed_files_sample1,
-    bed_labels_sample1=args.bed_labels_sample1,
-    loop_file_sample1=args.loop_file_sample1,
-    loop_file_sample2=args.loop_file_sample2,
-    gtf_file=args.gtf_file,
-    resolution=args.resolution,
-    start=args.start,
-    end=args.end,
-    chrid=args.chrid,
-    cmap=args.cmap,
-    vmin=args.vmin,
-    vmax=args.vmax,
-    output_file=args.output_file,
-    cooler_file2=args.cooler_file2,
-    bigwig_files_sample2=args.bigwig_files_sample2,
-    bigwig_labels_sample2=args.bigwig_labels_sample2,
-    colors_sample2=args.colors_sample2,
-    bed_files_sample2=args.bed_files_sample2,
-    bed_labels_sample2=args.bed_labels_sample2,
-    track_size=args.track_size,
-    track_spacing=args.track_spacing,
-    operation=args.operation,
-    division_method=args.division_method,
-    diff_cmap=args.diff_cmap,
-    diff_title=args.diff_title,
-    genes_to_annotate=args.genes_to_annotate
+        cooler_file1=args.cooler_file1,
+        sampleid1='Sample1',
+        bigwig_files_sample1=args.bigwig_files_sample1,
+        bigwig_labels_sample1=args.bigwig_labels_sample1,
+        colors_sample1=args.colors_sample1,
+        bed_files_sample1=args.bed_files_sample1,
+        bed_labels_sample1=args.bed_labels_sample1,
+        loop_file_sample1=args.loop_file_sample1,
+        loop_file_sample2=args.loop_file_sample2,
+        gtf_file=args.gtf_file,
+        resolution=args.resolution,
+        start=args.start,
+        end=args.end,
+        chrid=args.chrid,
+        cmap=args.cmap,
+        vmin=args.vmin,
+        vmax=args.vmax,
+        output_file=args.output_file,
+        cooler_file2=args.cooler_file2,
+        sampleid2='Sample2',
+        bigwig_files_sample2=args.bigwig_files_sample2,
+        bigwig_labels_sample2=args.bigwig_labels_sample2,
+        colors_sample2=args.colors_sample2,
+        bed_files_sample2=args.bed_files_sample2,
+        bed_labels_sample2=args.bed_labels_sample2,
+        track_size=args.track_size,
+        track_spacing=args.track_spacing,
+        normalization_method=args.normalization_method,
+        genes_to_annotate=args.genes_to_annotate,
+        title=args.title
     )
+
 if __name__ == '__main__':
     main()

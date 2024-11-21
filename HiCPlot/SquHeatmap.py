@@ -781,6 +781,37 @@ def main():
     parser.add_argument("-V", "--version", action="version",version="TriHeatmap {}".format(__version__)\
                       ,help="Print version and exit")
     args = parser.parse_args()
-
+    # Call the plotting function
+    plot_heatmaps(
+        cooler_file1=args.cooler_file1,
+        sampleid1=args.sampleid1,
+        bigwig_files_sample1=args.bigwig_files_sample1,
+        bigwig_labels_sample1=args.bigwig_labels_sample1,
+        colors_sample1=args.colors_sample1,
+        bed_files_sample1=args.bed_files_sample1,
+        bed_labels_sample1=args.bed_labels_sample1,
+        loop_file_sample1=args.loop_file_sample1,
+        loop_file_sample2=args.loop_file_sample2,
+        gtf_file=args.gtf_file,
+        resolution=args.resolution,
+        start=args.start,
+        end=args.end,
+        chrid=args.chrid,
+        cmap=args.cmap,
+        vmin=args.vmin,
+        vmax=args.vmax,
+        output_file=args.output_file,
+        layout=args.layout,
+        cooler_file2=args.cooler_file2,
+        sampleid2=args.sampleid2,
+        bigwig_files_sample2=args.bigwig_files_sample2,
+        bigwig_labels_sample2=args.bigwig_labels_sample2,
+        bed_files_sample2=args.bed_files_sample2,
+        bed_labels_sample2=args.bed_labels_sample2,
+        track_size=args.track_size,
+        track_spacing=args.track_spacing,
+        normalization_method=args.normalization_method,
+        genes_to_annotate=args.genes_to_annotate
+    )
 if __name__ == '__main__':
     main()

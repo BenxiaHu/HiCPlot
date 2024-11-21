@@ -16,7 +16,8 @@ setup(
         "console_scripts": ['TriHeatmap = HiCPlot.TriHeatmap:main',
                             'SquHeatmap = HiCPlot.SquHeatmap:main',
                             'NGStrack= HiCPlot.NGStrack:main',
-                            'DiffSquHeatmap= HiCPlot.DiffSquHeatmap:main']
+                            'DiffSquHeatmap= HiCPlot.DiffSquHeatmap:main',
+                            'upper_lower_triangle_heatmap= HiCPlot.upper_lower_triangle_heatmap:main']
         },
     python_requires = '>=3.12',
     packages = ['HiCPlot'],
