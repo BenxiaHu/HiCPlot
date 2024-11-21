@@ -480,16 +480,11 @@ def plot_heatmaps(cooler_file1, sampleid1,
     ax_combined.set_title(title if title else "Combined Hi-C Heatmap", fontsize=10)
     ax_combined.set_ylim(end, start)  # Flip y-axis to match genomic coordinates
     ax_combined.set_xlim(start, end)
-    #ax_combined.set_aspect('equal')  # Ensure square aspect
-    # Add labels for Sample1 and Sample2
-    #label_offset = (end - start) * 0.02  # 2% of the region length
-    #ax_combined.text(end - label_offset,start + label_offset, 'Sample1', color='black', fontsize=8, ha='right', va='top')
-    #ax_combined.text(end - label_offset, start + label_offset, 'Sample2', color='black', fontsize=8, ha='left', va='bottom')
     # Add labels for Sample1 and Sample2 using axes fraction
-    ax_combined.text(0.95, 0.95, 'Sample1', transform=ax_combined.transAxes, 
+    ax_combined.text(0.95, 0.95, sampleid1, transform=ax_combined.transAxes, 
                 color='black', fontsize=8, ha='right', va='top', 
                 bbox=dict(facecolor='white', edgecolor='none', alpha=0.7))
-    ax_combined.text(0.05, 0.05, 'Sample2', transform=ax_combined.transAxes, 
+    ax_combined.text(0.05, 0.05, sampleid2, transform=ax_combined.transAxes, 
                 color='black', fontsize=8, ha='left', va='bottom', 
                 bbox=dict(facecolor='white', edgecolor='none', alpha=0.7))
 
