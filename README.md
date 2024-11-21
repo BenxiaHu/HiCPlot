@@ -79,7 +79,7 @@ the output file is heatmaps and genome tracks.
     --gtf_file "/data/bxhu/project/database/hg38/gencode.v38.annotation.gtf" \
     --resolution 10000 --chrid "chr16" --start 67500000 --end 67700000 \
     --cmap "autumn_r" \
-    --output_file "upper_lwoer_triangle_heatmap_11212024_2.pdf" \
+    --output_file "lower_upper_combined_square_Heatmap.pdf" \
     --track_size 4 \
     --track_spacing 0.5 \
     --loop_file_sample1 /data/bxhu/project/DLR_AD/result/HiC/mustache/AD_merged_5kb_loops.csv \
