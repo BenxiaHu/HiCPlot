@@ -359,7 +359,7 @@ def plot_loops(ax, loop_file, region, color='purple', alpha=0.5, linewidth=1, la
     ax.set_ylim(0, max_height * 1.1)  # Adjust y-limits based on maximum arc height
     ax.axis('off')  # Hide axis for loop tracks
     if label:
-        ax.set_title(label, fontsize=8)  # Add sample name above the loop track
+        ax.set_title(label, fontsize=8,pad=10)  # Add sample name above the loop track
 
 def plot_heatmaps(cooler_file1, sampleid1,
                  bigwig_files_sample1=[], bigwig_labels_sample1=[], colors_sample1="red",
@@ -458,12 +458,15 @@ def plot_heatmaps(cooler_file1, sampleid1,
     num_rows = 2 + num_loops + max_bigwig_bed_tracks + num_genes
 
     # Define height ratios
-    height_ratios = [track_size] + [0.1] + [0.3]*num_loops + [track_size/5]*max_bigwig_bed_tracks + [track_size/5]*num_genes
+    small_colorbar_height = 0.1  # Adjust as needed
+    track_height_ratio = 0.5  # Adjust as needed for BigWig/BED tracks
+    loop_track_height = 0.3
+    height_ratios = [1] + [small_colorbar_height] + [loop_track_height]*num_loops+[track_height_ratio] * (max_bigwig_bed_tracks) + [track_height_ratio * num_genes]
 
-    gs = gridspec.GridSpec(num_rows, 1, height_ratios=height_ratios, hspace=track_spacing*1.5)
+    gs = gridspec.GridSpec(num_rows, 1, height_ratios=height_ratios, hspace=0.3)
     # Define default figsize
     width = track_size
-    height = sum(height_ratios) + 2
+    height = sum(height_ratios) * (track_size / height_ratios[0]) + (num_rows -1)*track_spacing
     figsize = (width, height)
 
     # Create figure with calculated size
@@ -477,7 +480,7 @@ def plot_heatmaps(cooler_file1, sampleid1,
     ax_combined.set_title(title if title else "Combined Hi-C Heatmap", fontsize=10)
     ax_combined.set_ylim(end, start)  # Flip y-axis to match genomic coordinates
     ax_combined.set_xlim(start, end)
-    ax_combined.set_aspect('equal')  # Ensure square aspect
+    #ax_combined.set_aspect('equal')  # Ensure square aspect
     # Add labels for Sample1 and Sample2
     #label_offset = (end - start) * 0.02  # 2% of the region length
     #ax_combined.text(end - label_offset,start + label_offset, 'Sample1', color='black', fontsize=8, ha='right', va='top')
@@ -496,7 +499,7 @@ def plot_heatmaps(cooler_file1, sampleid1,
     cbar_combined.ax.tick_params(labelsize=8)
     cax_combined.xaxis.set_label_position('bottom')
     cax_combined.xaxis.set_ticks_position('bottom')
-    cbar_combined.set_label(normalization_method, labelpad=3)
+    cbar_combined.set_label(normalization_method, labelpad=10)
     cbar_combined.ax.xaxis.set_label_position('top')
 
     current_row = 2
@@ -527,7 +530,7 @@ def plot_heatmaps(cooler_file1, sampleid1,
             y_min, y_max = type_min_max.get(bw_type, (None, None))
             plot_seq(ax_bw, bigwig_files_sample1[i], region, color=colors_sample1, 
                      y_min=y_min, y_max=y_max)
-            ax_bw.set_title(f"{bigwig_labels_sample1[i]}", fontsize=8)
+            ax_bw.set_title(f"{bigwig_labels_sample1[i]}", fontsize=8,pad=10)
             ax_bw.set_xlim(start, end)
             if y_min is not None and y_max is not None:
                 ax_bw.set_ylim(y_min, y_max * 1.1)
@@ -541,7 +544,7 @@ def plot_heatmaps(cooler_file1, sampleid1,
             y_min, y_max = type_min_max.get(bw_type, (None, None))
             plot_seq(ax_bw, bigwig_files_sample2[j], region, color=colors_sample2, 
                      y_min=y_min, y_max=y_max)
-            ax_bw.set_title(f"{bigwig_labels_sample2[j]}", fontsize=8)
+            ax_bw.set_title(f"{bigwig_labels_sample2[j]}", fontsize=8,pad=10)
             ax_bw.set_xlim(start, end)
             if y_min is not None and y_max is not None:
                 ax_bw.set_ylim(y_min, y_max * 1.1)
@@ -553,7 +556,7 @@ def plot_heatmaps(cooler_file1, sampleid1,
         for k in range(len(bed_files_sample1)):
             ax_bed = f.add_subplot(gs[current_row + k, 0])
             plot_bed(ax_bed, bed_files_sample1[k], region, color=colors_sample1, label=bed_labels_sample1[k])
-            ax_bed.set_title(f"{bed_labels_sample1[k]}", fontsize=8)
+            ax_bed.set_title(f"{bed_labels_sample1[k]}", fontsize=8,pad=10)
 
     current_row = 2 + num_loops + len(bigwig_files_sample1) + len(bigwig_files_sample2) + len(bed_files_sample1)
     # Plot BED tracks for Sample2 if provided
@@ -561,7 +564,7 @@ def plot_heatmaps(cooler_file1, sampleid1,
         for l in range(len(bed_files_sample2)):
             ax_bed = f.add_subplot(gs[current_row+ l, 0])
             plot_bed(ax_bed, bed_files_sample2[l], region, color=colors_sample2, label=bed_labels_sample2[l])
-            ax_bed.set_title(f"{bed_labels_sample2[l]}", fontsize=8)
+            ax_bed.set_title(f"{bed_labels_sample2[l]}", fontsize=8,pad=10)
 
     # Plot Genes if GTF file is provided
     if gtf_file:

@@ -357,7 +357,6 @@ def plot_heatmaps(
     """
     plt.rcParams['font.size'] = 8
     # Adjust track spacing if needed
-    track_spacing = track_spacing * 1.2
     single_sample = len(bigwig_files_sample2) == 0
 
     region = (chrid, start, end)
@@ -440,14 +439,15 @@ def plot_heatmaps(
     num_rows = 1 + num_colorbars + num_loops + max_tracks + num_genes
 
     # Define height ratios
-    small_colorbar_height = 0.1
-    loop_track_height = 1  # Height for loop arcs
-    height_ratios = [track_size] + [small_colorbar_height] + [loop_track_height]*num_loops + [track_size/5]*max_tracks + [track_size/5]*num_genes
+    small_colorbar_height = 0.1  # Adjust as needed
+    track_height_ratio = 0.5  # Adjust as needed for BigWig/BED tracks
+    loop_track_height = 0.3
+    height_ratios = [1] + [small_colorbar_height] + [loop_track_height]*num_loops+[track_height_ratio] * (max_tracks) + [track_height_ratio * num_genes]
 
-    gs = gridspec.GridSpec(num_rows, 1, height_ratios=height_ratios)
+    gs = gridspec.GridSpec(num_rows, 1, height_ratios=height_ratios, hspace=0.3)
     # Define default figsize
     width = track_size
-    height = sum(height_ratios) + 2
+    height = sum(height_ratios) * (track_size / height_ratios[0]) + (num_rows -1)*track_spacing
     figsize = (width, height)
 
     # Create figure with calculated size
@@ -540,7 +540,7 @@ def plot_heatmaps(
         ax_genes.set_xlim(start, end)
 
     # Adjust layout and save the figure
-    plt.subplots_adjust(hspace=0.5)
+    plt.subplots_adjust(hspace=track_spacing)
     f.savefig(output_file, bbox_inches='tight')
     plt.close(f)
 
@@ -594,8 +594,8 @@ def main():
 
     # Gene annotation arguments
     parser.add_argument('--genes_to_annotate', type=str, nargs='*', help='Gene names to annotate.', default=None)
-    parser.add_argument("-V", "--version", action="version", version=f"HiCHeatmap {__version__}",
-                      help="Print version and exit")
+    parser.add_argument("-V", "--version", action="version",version="TriHeatmap {}".format(__version__)\
+                      ,help="Print version and exit")
     args = parser.parse_args()
 
     # Call the plot_heatmaps function with the parsed arguments
@@ -631,5 +631,7 @@ def main():
     diff_title=args.diff_title,
     genes_to_annotate=args.genes_to_annotate
     )
+
+
 if __name__ == '__main__':
     main()
