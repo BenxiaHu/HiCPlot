@@ -22,7 +22,6 @@ the output file is heatmaps and genome tracks.
     --output_file "Square_horizontal_heatmap.pdf" \
     --track_size 4 \
     --track_spacing 0.5 \
-    --operation divide \
     --division_method log2_add1 \
     --diff_cmap bwr --diff_title "log2((sample1+1)/(sample2+1))" \
     --loop_file_sample1 Sample1_loops.csv \
