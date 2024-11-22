@@ -66,19 +66,17 @@ the output file is heatmaps and genome tracks.
 #### usage:
 ```
     upper_lower_triangle_heatmap \
-    --cooler_file1 "/data/bxhu/project/DLR_AD/result/cooltools/AD_merge.mcool" \
-    --cooler_file2 "/data/bxhu/project/DLR_AD/result/cooltools/Old_merge.mcool" \
+    --cooler_file1 "Sample1.mcool" \
+    --cooler_file2 "Sample2.mcool" \
     --sampleid1 Sample1 \
     --sampleid2 Sample2 \
-    --bigwig_files_sample1 "/data/bxhu/project/ZZL/RNAseq/bam/bw/HethVEH_10bp.bw" \
-                            "/data/bxhu/project/ZZL/ATACseq_CD8/bigwig/Healthy.bw" \
-    --bigwig_labels_sample1 Sample1_RNA Sample1_ChIP \
+    --bigwig_files_sample1 "Sample1.bw" \
+    --bigwig_labels_sample1 Sample1_RNA \
     --colors_sample1 "red" \
-    --bigwig_files_sample2 "/data/bxhu/project/ZZL/RNAseq/bam/bw/SCAVEH_10bp.bw" \
-                           "/data/bxhu/project/ZZL/ATACseq_CD8/bigwig/SCD.bw" \
-    --bigwig_labels_sample2 Sample2_RNA Sample2_ChIP \
+    --bigwig_files_sample2 "Sample2.bw" \
+    --bigwig_labels_sample2 Sample2_RNA \
     --colors_sample2 "green" \
-    --gtf_file "/data/bxhu/project/database/hg38/gencode.v38.annotation.gtf" \
+    --gtf_file "gencode.v38.annotation.gtf" \
     --resolution 10000 --chrid "chr16" --start 67500000 --end 67700000 \
     --cmap "autumn_r" \
     --output_file "lower_upper_combined_square_Heatmap.pdf" \
