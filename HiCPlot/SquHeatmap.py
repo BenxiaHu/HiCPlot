@@ -720,7 +720,7 @@ def plot_heatmaps(cooler_file1, sampleid1,
         if gtf_file:
             gene_row = max_cool_sample + 1 + max_tracks + num_loops
             ax_genes = f.add_subplot(gs[gene_row, 0])
-            plot_genes(ax_genes, gtf_file, region)
+            plot_genes(ax_genes, gtf_file, region,genes_to_annotate=genes_to_annotate, color='blue')
             ax_genes.set_xlim(start, end)
 
     else:
