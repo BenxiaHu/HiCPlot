@@ -594,7 +594,7 @@ def main():
 
     # Gene annotation arguments
     parser.add_argument('--genes_to_annotate', type=str, nargs='*', help='Gene names to annotate.', default=None)
-    parser.add_argument("-V", "--version", action="version",version="TriHeatmap {}".format(__version__)\
+    parser.add_argument("-V", "--version", action="version",version="DiffSquHeatmap {}".format(__version__)\
                       ,help="Print version and exit")
     args = parser.parse_args()
 

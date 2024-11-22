@@ -361,7 +361,7 @@ def plot_loops(ax, loop_file, region, color='purple', alpha=0.5, linewidth=1, la
     if label:
         ax.set_title(label, fontsize=8,pad=10)  # Add sample name above the loop track
 
-def plot_heatmaps(cooler_file1, sampleid1,
+def plot_heatmaps(cooler_file1, sampleid1=None,
                  bigwig_files_sample1=[], bigwig_labels_sample1=[], colors_sample1="red",
                  bed_files_sample1=[], bed_labels_sample1=[],
                  loop_file_sample1=None, loop_file_sample2=None,
@@ -480,6 +480,11 @@ def plot_heatmaps(cooler_file1, sampleid1,
     ax_combined.set_title(title if title else "Combined Hi-C Heatmap", fontsize=10)
     ax_combined.set_ylim(end, start)  # Flip y-axis to match genomic coordinates
     ax_combined.set_xlim(start, end)
+    #ax_combined.set_aspect('equal')  # Ensure square aspect
+    # Add labels for Sample1 and Sample2
+    #label_offset = (end - start) * 0.02  # 2% of the region length
+    #ax_combined.text(end - label_offset,start + label_offset, 'Sample1', color='black', fontsize=8, ha='right', va='top')
+    #ax_combined.text(end - label_offset, start + label_offset, 'Sample2', color='black', fontsize=8, ha='left', va='bottom')
     # Add labels for Sample1 and Sample2 using axes fraction
     ax_combined.text(0.95, 0.95, sampleid1, transform=ax_combined.transAxes, 
                 color='black', fontsize=8, ha='right', va='top', 
@@ -578,6 +583,8 @@ def main():
     # Required arguments
     parser.add_argument('--cooler_file1', type=str, required=True, help='Path to the first sample .cool or .mcool file.')
     parser.add_argument('--cooler_file2', type=str, required=True, help='Path to the second sample .cool or .mcool file.')
+    parser.add_argument('--sampleid1', type=str, required=True, help='sample1 name.')
+    parser.add_argument('--sampleid2', type=str, required=True, help='sample2 name.')
     parser.add_argument('--resolution', type=int, required=True, help='Resolution for the cooler data.')
     parser.add_argument('--start', type=int, required=True, help='Start position for the region of interest.')
     parser.add_argument('--end', type=int, required=True, help='End position for the region of interest.')
@@ -618,14 +625,14 @@ def main():
     # Gene annotation arguments
     parser.add_argument('--genes_to_annotate', type=str, nargs='*', help='Gene names to annotate.', default=None)
     parser.add_argument('--title', type=str, nargs='*', help='title of the heatmap.', default=None)
-    parser.add_argument("-V", "--version", action="version",version="TriHeatmap {}".format(__version__)\
+    parser.add_argument("-V", "--version", action="version",version="upper_lower_triangle_heatmap {}".format(__version__)\
                       ,help="Print version and exit")
     args = parser.parse_args()
 
 # Call the plotting function
     plot_heatmaps(
         cooler_file1=args.cooler_file1,
-        sampleid1='Sample1',
+        sampleid1=args.sampleid1,
         bigwig_files_sample1=args.bigwig_files_sample1,
         bigwig_labels_sample1=args.bigwig_labels_sample1,
         colors_sample1=args.colors_sample1,
@@ -643,7 +650,7 @@ def main():
         vmax=args.vmax,
         output_file=args.output_file,
         cooler_file2=args.cooler_file2,
-        sampleid2='Sample2',
+        sampleid2=args.sampleid2,
         bigwig_files_sample2=args.bigwig_files_sample2,
         bigwig_labels_sample2=args.bigwig_labels_sample2,
         colors_sample2=args.colors_sample2,

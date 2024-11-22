@@ -68,6 +68,8 @@ the output file is heatmaps and genome tracks.
     upper_lower_triangle_heatmap \
     --cooler_file1 "/data/bxhu/project/DLR_AD/result/cooltools/AD_merge.mcool" \
     --cooler_file2 "/data/bxhu/project/DLR_AD/result/cooltools/Old_merge.mcool" \
+    --sampleid1 Sample1 \
+    --sampleid2 Sample2 \
     --bigwig_files_sample1 "/data/bxhu/project/ZZL/RNAseq/bam/bw/HethVEH_10bp.bw" \
                             "/data/bxhu/project/ZZL/ATACseq_CD8/bigwig/Healthy.bw" \
     --bigwig_labels_sample1 Sample1_RNA Sample1_ChIP \
@@ -156,7 +158,7 @@ matplotlib
 pyBigWig  
 pyranges  
 
-#### pip install HiCPlot==1.0.8
-https://pypi.org/project/HiCPlot/1.0.8/  
+#### pip install HiCPlot==1.13
+https://pypi.org/project/HiCPlot/1.13/  
 
 

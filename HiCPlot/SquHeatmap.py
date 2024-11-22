@@ -778,7 +778,7 @@ def main():
     parser.add_argument('--loop_file_sample2', type=str, help='Path to the chromatin loop file for sample 2.', default=None)
     # Gene annotation arguments
     parser.add_argument('--genes_to_annotate', type=str, nargs='*', help='Gene names to annotate.', default=None)
-    parser.add_argument("-V", "--version", action="version",version="TriHeatmap {}".format(__version__)\
+    parser.add_argument("-V", "--version", action="version",version="SquHeatmap {}".format(__version__)\
                       ,help="Print version and exit")
     args = parser.parse_args()
     # Call the plotting function
