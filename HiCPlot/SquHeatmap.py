@@ -270,7 +270,7 @@ def plot_bed(ax, bed_file, region, color='green', linewidth=1):
     ax.set_ylim(0, 1)
     ax.axis('off')  # Hide axis for BED tracks
 
-def pcolormesh_square(ax, matrix, start, end, cmap='bwr', vmin=None, vmax=None, *args, **kwargs):
+def pcolormesh_square(ax, matrix, start, end, cmap='autumn_r', vmin=None, vmax=None, *args, **kwargs):
     """
     Plot the difference matrix as a heatmap on the given axis.
     """
@@ -361,7 +361,7 @@ def plot_loops(ax, loop_file, region, color='purple', alpha=0.5, linewidth=1, la
     if label:
         ax.set_title(label, fontsize=8)  # Add sample name above the loop track
 
-def plot_heatmaps(cooler_file1, sampleid1,
+def plot_heatmaps(cooler_file1, sampleid1=None,
                  bigwig_files_sample1=[], bigwig_labels_sample1=[], colors_sample1="red",
                  bed_files_sample1=[], bed_labels_sample1=[],
                  loop_file_sample1=None, loop_file_sample2=None,
@@ -450,7 +450,11 @@ def plot_heatmaps(cooler_file1, sampleid1,
 
     # Set up the figure based on layout
     if layout == 'horizontal':
-        ncols = 1 if single_sample else 2
+        if cooler_file2:
+            ncols = 2
+        else:
+            ncols = 1
+        print(ncols)
         num_genes = 1 if gtf_file else 0
         # Calculate the number of BigWig and BED tracks per sample
         max_num_bigwig_files = max(len(bigwig_files_sample1), len(bigwig_files_sample2))
@@ -528,7 +532,7 @@ def plot_heatmaps(cooler_file1, sampleid1,
             ax_loop1 = f.add_subplot(gs[current_row, 0])
             plot_loops(ax_loop1, loop_file_sample1, region, color=colors_sample1, alpha=0.7, linewidth=1, label=f"{sampleid1} Loops")
             current_row += 1
-        if not single_sample and loop_file_sample2:
+        if loop_file_sample2:
             current_row = 2
             ax_loop2 = f.add_subplot(gs[current_row, 1])
             plot_loops(ax_loop2, loop_file_sample2, region, color=colors_sample2, alpha=0.7, linewidth=1, label=f"{sampleid2} Loops")
@@ -788,6 +792,7 @@ def main():
         bigwig_files_sample1=args.bigwig_files_sample1,
         bigwig_labels_sample1=args.bigwig_labels_sample1,
         colors_sample1=args.colors_sample1,
+        colors_sample2=args.colors_sample2,
         bed_files_sample1=args.bed_files_sample1,
         bed_labels_sample1=args.bed_labels_sample1,
         loop_file_sample1=args.loop_file_sample1,
