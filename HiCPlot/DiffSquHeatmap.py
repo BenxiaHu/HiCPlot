@@ -195,7 +195,7 @@ def plot_seq(ax, file_path, region, color='blue', y_min=None, y_max=None):
         return
 
     # Plot the RNA-seq/ChIP-seq expression as a filled line plot
-    ax.fill_between(positions, values, color=color, alpha=0.7)
+    ax.plot(positions, values, color=color, alpha=0.7)
     ax.set_xlim(region[1], region[2])
     if y_min is not None and y_max is not None:
         ax.set_ylim(y_min, y_max)

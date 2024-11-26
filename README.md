@@ -155,7 +155,7 @@ matplotlib
 pyBigWig  
 pyranges  
 
-#### pip install HiCPlot==1.15
-https://pypi.org/project/HiCPlot/1.15/  
+#### pip install HiCPlot==1.16
+https://pypi.org/project/HiCPlot/1.16/  
 
 
