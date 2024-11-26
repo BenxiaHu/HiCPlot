@@ -514,8 +514,8 @@ def main():
     parser.add_argument('--track_spacing', type=float, default=0.5, help='Spacing between tracks (in inches).')
 
     # Colors for BigWig and BED tracks
-    parser.add_argument('--colors_sample1', type=str, nargs='+', default=["red"], help='Colors for sample 1 BigWig tracks.')
-    parser.add_argument('--colors_sample2', type=str, nargs='+', default=["blue"], help='Colors for sample 2 BigWig tracks.')
+    parser.add_argument('--colors_sample1', type=str, default="red", help='Colors for sample 1 BigWig tracks.')
+    parser.add_argument('--colors_sample2', type=str, default="blue", help='Colors for sample 2 BigWig tracks.')
 
     # Layout argument
     parser.add_argument('--layout', type=str, default='vertical', choices=['horizontal', 'vertical'],
@@ -537,7 +537,7 @@ def main():
         bed_files_sample2=args.bed_files_sample2,
         bed_labels_sample2=args.bed_labels_sample2,
         gtf_file=args.gtf_file,
-        genes=args.gene,
+        genes_to_annotate=args.genes_to_annotate,
         chrid=args.chrid,
         start=args.start,
         end=args.end,
