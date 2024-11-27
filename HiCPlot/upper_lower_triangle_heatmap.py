@@ -8,6 +8,7 @@ import pyranges as pr
 import numpy as np
 import matplotlib.pyplot as plt
 import cooler
+from matplotlib.colors import LogNorm
 from matplotlib.ticker import EngFormatter
 import itertools
 import sys
@@ -271,13 +272,18 @@ def plot_bed(ax, bed_file, region, color='green', linewidth=1, label=None):
     if label:
         ax.set_title(label, fontsize=8)
 
-def pcolormesh_square(ax, matrix, start, end, cmap='autumn_r', vmin=None, vmax=None, *args, **kwargs):
+def pcolormesh_square(ax, matrix, start, end, cmap='autumn_r', vmin=None, NORM=True,vmax=None, *args, **kwargs):
     """
     Plot the matrix as a heatmap on the given axis.
     """
     if matrix is None:
         return None
-    im = ax.imshow(matrix, aspect='auto', origin='upper',
+    if NORM:
+        norm = LogNorm(vmin=vmin, vmax=vmax)
+        im = ax.imshow(matrix, aspect='auto', origin='upper',norm=norm,
+                extent=[start, end, end, start], cmap=cmap, *args, **kwargs)
+    else:
+        im = ax.imshow(matrix, aspect='auto', origin='upper',
                    extent=[start, end, end, start], cmap=cmap, vmin=vmin, vmax=vmax, *args, **kwargs)
     return im
 
@@ -394,6 +400,9 @@ def plot_heatmaps(cooler_file1, sampleid1=None,
     if normalization_method == 'raw':
         normalized_data1 = data1
         normalized_data2 = data2 if not single_sample else None
+    elif normalization_method == 'LogNorm':
+        normalized_data1 = data1
+        normalized_data2 = data2 if not single_sample else None
     elif normalization_method == 'log2':
         normalized_data1 = np.log2(np.maximum(data1, 1e-10))
         if not single_sample:
@@ -474,7 +483,10 @@ def plot_heatmaps(cooler_file1, sampleid1=None,
 
     # Plot Combined Hi-C Heatmap
     ax_combined = f.add_subplot(gs[0, 0])
-    im_combined = pcolormesh_square(ax_combined, combined_matrix, region[1], region[2], cmap=cmap, vmin=vmin_combined, vmax=vmax_combined)
+    if normalization_method == "LogNorm":
+        im_combined = pcolormesh_square(ax_combined, combined_matrix, region[1], region[2], cmap=cmap,NORM=True, vmin=vmin_combined, vmax=vmax_combined)
+    else:
+        im_combined = pcolormesh_square(ax_combined, combined_matrix, region[1], region[2], cmap=cmap, NORM=False,vmin=vmin_combined, vmax=vmax_combined)
     # Format x-axis ticks
     ax_combined.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, pos: f'{x / 1e6:.2f}'))
     ax_combined.set_title(title if title else "Combined Hi-C Heatmap", fontsize=10)
@@ -616,8 +628,8 @@ def main():
     parser.add_argument('--loop_file_sample2', type=str, help='Path to the chromatin loop file for sample 2.', default=None)
 
     # Normalization Method Argument
-    parser.add_argument('--normalization_method', type=str, default='raw', choices=['raw', 'log2', 'log2_add1','log','log_add1'],
-                        help="Method for normalization: 'raw', 'log2', 'log2_add1', 'log', or 'log_add1'.")
+    parser.add_argument('--normalization_method', type=str, default='raw', choices=['raw', 'LogNorm','log2', 'log2_add1','log','log_add1'],
+                        help="Method for normalization: 'raw', 'LogNorm','log2', 'log2_add1', 'log', or 'log_add1'.")
 
     parser.add_argument('--track_size', type=float, default=5, help='Height of the heatmap track (in inches).')
     parser.add_argument('--track_spacing', type=float, default=0.5, help='Spacing between tracks (in inches).')
@@ -625,7 +637,7 @@ def main():
     # Gene annotation arguments
     parser.add_argument('--genes_to_annotate', type=str, nargs='*', help='Gene names to annotate.', default=None)
     parser.add_argument('--title', type=str, nargs='*', help='title of the heatmap.', default=None)
-    parser.add_argument("-V", "--version", action="version",version="upper_lower_triangle_heatmap {}".format(__version__)\
+    parser.add_argument("-V", "--version", action="version",version="SquHeatmap {}".format(__version__)\
                       ,help="Print version and exit")
     args = parser.parse_args()
 

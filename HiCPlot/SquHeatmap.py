@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cooler
 from matplotlib.ticker import EngFormatter
+from matplotlib.colors import LogNorm
 import itertools
 import sys
 import scipy.sparse
@@ -270,13 +271,18 @@ def plot_bed(ax, bed_file, region, color='green', linewidth=1):
     ax.set_ylim(0, 1)
     ax.axis('off')  # Hide axis for BED tracks
 
-def pcolormesh_square(ax, matrix, start, end, cmap='autumn_r', vmin=None, vmax=None, *args, **kwargs):
+def pcolormesh_square(ax, matrix, start, end, NORM=True,cmap='autumn_r', vmin=None, vmax=None, *args, **kwargs):
     """
     Plot the difference matrix as a heatmap on the given axis.
     """
     if matrix is None:
         return None
-    im = ax.imshow(matrix, aspect='auto', origin='upper',
+    if NORM:
+        norm = LogNorm(vmin=vmin, vmax=vmax)
+        im = ax.imshow(matrix, aspect='auto', origin='upper',norm=norm,
+                extent=[start, end, end, start], cmap=cmap, *args, **kwargs)
+    else:
+        im = ax.imshow(matrix, aspect='auto', origin='upper',
                    extent=[start, end, end, start], cmap=cmap, vmin=vmin, vmax=vmax, *args, **kwargs)
     return im
 
@@ -392,6 +398,9 @@ def plot_heatmaps(cooler_file1, sampleid1=None,
     if normalization_method == 'raw':
         normalized_data1 = data1
         normalized_data2 = data2 if not single_sample else None
+    elif normalization_method == 'LogNorm':
+        normalized_data1 = data1
+        normalized_data2 = data2 if not single_sample else None
     elif normalization_method == 'log2':
         normalized_data1 = np.log2(np.maximum(data1, 1e-10))
         if not single_sample:
@@ -454,7 +463,6 @@ def plot_heatmaps(cooler_file1, sampleid1=None,
             ncols = 2
         else:
             ncols = 1
-        print(ncols)
         num_genes = 1 if gtf_file else 0
         # Calculate the number of BigWig and BED tracks per sample
         max_num_bigwig_files = max(len(bigwig_files_sample1), len(bigwig_files_sample2))
@@ -494,7 +502,10 @@ def plot_heatmaps(cooler_file1, sampleid1=None,
         
         # Plot first heatmap
         ax1 = f.add_subplot(gs[0, 0])
-        im1 = pcolormesh_square(ax1, normalized_data1, region[1], region[2], cmap=cmap, vmin=vmin, vmax=vmax)
+        if normalization_method == "LogNorm":
+            im1 = pcolormesh_square(ax1, normalized_data1, region[1], region[2], cmap=cmap,NORM=True, vmin=vmin, vmax=vmax)
+        else:
+            im1 = pcolormesh_square(ax1, normalized_data1, region[1], region[2], cmap=cmap, NORM=False,vmin=vmin, vmax=vmax)
         format_ticks(ax1, rotate=False)
         ax1.set_title(sampleid1, fontsize=10)
         ax1.set_aspect('equal')  # Ensure square aspect
@@ -512,7 +523,10 @@ def plot_heatmaps(cooler_file1, sampleid1=None,
         # Plot second heatmap if sample2 data is provided
         if not single_sample:
             ax2 = f.add_subplot(gs[0, 1])
-            im2 = pcolormesh_square(ax2, normalized_data2, region[1], region[2], cmap=cmap, vmin=vmin, vmax=vmax)
+            if normalization_method == "LogNorm":
+                im2 = pcolormesh_square(ax2, normalized_data2, region[1], region[2], cmap=cmap,NORM=True, vmin=vmin, vmax=vmax)
+            else:
+                im2 = pcolormesh_square(ax2, normalized_data2, region[1], region[2], cmap=cmap, NORM=False,vmin=vmin, vmax=vmax)
             format_ticks(ax2, rotate=False)
             ax2.set_title(sampleid2, fontsize=10)
             ax2.set_aspect('equal')  # Ensure square aspect
@@ -637,7 +651,10 @@ def plot_heatmaps(cooler_file1, sampleid1=None,
         f = plt.figure(figsize=(figsize_width, figsize_height))
         # Plot Heatmaps
         ax_heatmap1 = f.add_subplot(gs[0, 0])
-        im1 = pcolormesh_square(ax_heatmap1, normalized_data1, region[1], region[2], cmap=cmap, vmin=vmin, vmax=vmax)
+        if normalization_method == "LogNorm":
+            im1 = pcolormesh_square(ax_heatmap1, normalized_data1, region[1], region[2], cmap=cmap,NORM=True, vmin=vmin, vmax=vmax)
+        else:
+            im1 = pcolormesh_square(ax_heatmap1, normalized_data1, region[1], region[2], cmap=cmap, NORM=False,vmin=vmin, vmax=vmax)
         #ax_heatmap1.set_aspect('auto')
         ax_heatmap1.set_ylim(end, start)
         ax_heatmap1.set_xlim(start, end)
@@ -647,7 +664,10 @@ def plot_heatmaps(cooler_file1, sampleid1=None,
         # Plot second heatmap if sample2 data is provided
         if not single_sample:
             ax_heatmap2 = f.add_subplot(gs[1, 0])
-            im2 = pcolormesh_square(ax_heatmap2, normalized_data2, region[1], region[2], cmap=cmap, vmin=vmin, vmax=vmax)
+            if normalization_method == "LogNorm":
+                im2 = pcolormesh_square(ax_heatmap2, normalized_data2, region[1], region[2], cmap=cmap,NORM=True, vmin=vmin, vmax=vmax)
+            else:
+                im2 = pcolormesh_square(ax_heatmap2, normalized_data2, region[1], region[2], cmap=cmap, NORM=False,vmin=vmin, vmax=vmax)
             #ax_heatmap2.set_aspect('auto')
             ax_heatmap2.set_ylim(end, start)
             ax_heatmap2.set_xlim(start, end)
@@ -771,8 +791,8 @@ def main():
     parser.add_argument('--bed_labels_sample2', type=str, nargs='*', help='Labels for BED tracks of sample 2.', default=[])
     
     # New Argument for Normalization Method
-    parser.add_argument('--normalization_method', type=str, default='raw', choices=['raw', 'log2', 'log2_add1','log','log_add1'],
-                        help="Method for normalization: 'raw', 'log2', 'log2_add1', 'log', or 'log_add1'.")
+    parser.add_argument('--normalization_method', type=str, default='raw', choices=['raw', 'LogNorm','log2', 'log2_add1','log','log_add1'],
+                        help="Method for normalization: 'raw', 'LogNorm','log2', 'log2_add1', 'log', or 'log_add1'.")
     
     parser.add_argument('--track_size', type=float, default=5, help='Width of each track (in inches).')
     parser.add_argument('--track_spacing', type=float, default=0.5, help='Spacing between tracks (in inches).')
