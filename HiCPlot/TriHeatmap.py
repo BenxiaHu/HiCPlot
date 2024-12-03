@@ -409,16 +409,14 @@ def pcolormesh_triangle(ax, matrix, start=0, resolution=1, NORM=True,vmin=None, 
     im.set_rasterized(True)
     return im
 
-def plot_heatmaps(cooler_file1, sampleid1,
+def plot_heatmaps(cooler_file1, sampleid1,format="balance",
                  bigwig_files_sample1=[], bigwig_labels_sample1=[], colors_sample1="red",
                  loop_file_sample1=None, loop_file_sample2=None,
                  bed_files_sample1=[], bed_labels_sample1=[],
-                 gtf_file=None,
-                 cooler_file2=None, sampleid2=None,
+                 gtf_file=None,cooler_file2=None, sampleid2=None,
                  bigwig_files_sample2=[], bigwig_labels_sample2=[], colors_sample2="blue",
                  bed_files_sample2=[], bed_labels_sample2=[],
-                 resolution=None,
-                 start=None, end=None, chrid=None,
+                 resolution=None,start=None, end=None, chrid=None,
                  cmap='autumn_r', vmin=None, vmax=None,
                  output_file='comparison_heatmap.pdf', layout='horizontal',
                  track_width=10, track_height=1, track_spacing=0.5,
@@ -437,12 +435,22 @@ def plot_heatmaps(cooler_file1, sampleid1,
     region = (chrid, start, end)
     # Load cooler data
     clr1 = cooler.Cooler(f'{cooler_file1}::resolutions/{resolution}')
-    data1 = clr1.matrix(balance=True).fetch(region)
+    if format == "balance":
+        data1 = clr1.matrix(balance=True).fetch(region).astype(float)
+    elif format == "ICE":
+        data1 = clr1.matrix(balance=False).fetch(region).astype(float)
+    else:
+        print("input format is wrong")
     # Load sample2 data if provided
     single_sample = cooler_file2 is None
     if not single_sample:
         clr2 = cooler.Cooler(f'{cooler_file2}::resolutions/{resolution}')
-        data2 = clr2.matrix(balance=True).fetch(region)
+        if format == "balance":
+            data2 = clr2.matrix(balance=True).fetch(region).astype(float)
+        elif format == "ICE":
+            data2 = clr2.matrix(balance=False).fetch(region).astype(float)
+        else:
+            print("input format is wrong")
     # Apply normalization to Hi-C matrices
     if normalization_method == 'raw':
         normalized_data1 = data1
@@ -810,6 +818,8 @@ def main():
     parser.add_argument('--cooler_file1', type=str, required=True, help='Path to the first .mcool file.')
     # Optional second Hi-C matrix
     parser.add_argument('--cooler_file2', type=str, required=False, help='Path to the second .mcool file.', default=None)
+    parser.add_argument('--format', type=str, default='balance', choices=['balance', 'ICE'], help='Format of .mcool file.')
+
     # Resolution and genomic region
     parser.add_argument('--resolution', type=int, default=10000, help='Resolution for the cooler data.')
     parser.add_argument('--start', type=int, default=10500000, help='Start position for the region of interest.')
@@ -889,7 +899,8 @@ def main():
         track_height=args.track_height,
         track_spacing=args.track_spacing,
         normalization_method=args.normalization_method,
-        genes_to_annotate=args.genes_to_annotate
+        genes_to_annotate=args.genes_to_annotate,
+        format=args.format
     )
 
 if __name__ == '__main__':

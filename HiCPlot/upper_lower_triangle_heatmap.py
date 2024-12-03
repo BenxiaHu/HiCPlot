@@ -367,12 +367,11 @@ def plot_loops(ax, loop_file, region, color='purple', alpha=0.5, linewidth=1, la
     if label:
         ax.set_title(label, fontsize=8,pad=10)  # Add sample name above the loop track
 
-def plot_heatmaps(cooler_file1, sampleid1=None,
+def plot_heatmaps(cooler_file1, sampleid1=None,format="balance",
                  bigwig_files_sample1=[], bigwig_labels_sample1=[], colors_sample1="red",
                  bed_files_sample1=[], bed_labels_sample1=[],
                  loop_file_sample1=None, loop_file_sample2=None,
-                 gtf_file=None, resolution=None,
-                 start=None, end=None, chrid=None,
+                 gtf_file=None, resolution=None, chrid=None,start=None, end=None,
                  cmap='autumn_r', vmin=None, vmax=None,
                  output_file='comparison_heatmap.pdf',
                  cooler_file2=None, sampleid2=None,
@@ -386,15 +385,22 @@ def plot_heatmaps(cooler_file1, sampleid1=None,
     
     # Load cooler data for Sample1
     clr1 = cooler.Cooler(f'{cooler_file1}::resolutions/{resolution}')
-    data1 = clr1.matrix(balance=True).fetch(region).astype(float)
-    
+    if format == "balance":
+        data1 = clr1.matrix(balance=True).fetch(region).astype(float)
+    elif format == "ICE":
+        data1 = clr1.matrix(balance=False).fetch(region).astype(float)
+    else:
+        print("input format is wrong")
     # Load cooler data for Sample2 if provided
     single_sample = cooler_file2 is None
     if not single_sample:
         clr2 = cooler.Cooler(f'{cooler_file2}::resolutions/{resolution}')
-        data2 = clr2.matrix(balance=True).fetch(region).astype(float)
-    else:
-        data2 = np.zeros_like(data1)  # If no second sample, set to zeros
+        if format == "balance":
+            data2 = clr2.matrix(balance=True).fetch(region).astype(float)
+        elif format == "ICE":
+            data2 = clr2.matrix(balance=False).fetch(region).astype(float)
+        else:
+            print("input format is wrong")
     
     # Apply normalization to Hi-C matrices
     if normalization_method == 'raw':
@@ -595,6 +601,8 @@ def main():
     # Required arguments
     parser.add_argument('--cooler_file1', type=str, required=True, help='Path to the first sample .cool or .mcool file.')
     parser.add_argument('--cooler_file2', type=str, required=True, help='Path to the second sample .cool or .mcool file.')
+    parser.add_argument('--format', type=str, default='balance', choices=['balance', 'ICE'], help='Format of .mcool file.')
+
     parser.add_argument('--sampleid1', type=str, required=True, help='sample1 name.')
     parser.add_argument('--sampleid2', type=str, required=True, help='sample2 name.')
     parser.add_argument('--resolution', type=int, required=True, help='Resolution for the cooler data.')
@@ -672,7 +680,8 @@ def main():
         track_spacing=args.track_spacing,
         normalization_method=args.normalization_method,
         genes_to_annotate=args.genes_to_annotate,
-        title=args.title
+        title=args.title,
+        format=args.format
     )
 
 if __name__ == '__main__':

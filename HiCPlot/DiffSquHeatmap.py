@@ -333,7 +333,7 @@ def pcolormesh_square(ax, matrix, start, end, cmap='bwr', vmin=None, vmax=None, 
     return im
 
 def plot_heatmaps(
-    cooler_file1,
+    cooler_file1,cooler_file2,format="balance",
     bigwig_files_sample1=[], bigwig_labels_sample1=[],colors_sample1="red",
     bed_files_sample1=[], bed_labels_sample1=[],
     loop_file_sample1=None, loop_file_sample2=None,
@@ -341,7 +341,6 @@ def plot_heatmaps(
     start=None, end=None, chrid=None,
     cmap='autumn_r', vmin=None, vmax=None,
     output_file='comparison_heatmap.pdf',
-    cooler_file2=None,
     bigwig_files_sample2=[], bigwig_labels_sample2=[], colors_sample2="blue",
     bed_files_sample2=[], bed_labels_sample2=[],
     track_size=5, track_spacing=0.5,
@@ -363,14 +362,20 @@ def plot_heatmaps(
 
     # Load cooler data for case
     clr1 = cooler.Cooler(f'{cooler_file1}::resolutions/{resolution}')
-    data1 = clr1.matrix(balance=True).fetch(region).astype(float)
-
-    # Load cooler data for control
-    if cooler_file2:
-        clr2 = cooler.Cooler(f'{cooler_file2}::resolutions/{resolution}')
-        data2 = clr2.matrix(balance=True).fetch(region).astype(float)
+    if format == "balance":
+        data1 = clr1.matrix(balance=True).fetch(region).astype(float)
+    elif format == "ICE":
+        data1 = clr1.matrix(balance=False).fetch(region).astype(float)
     else:
-        data2 = np.zeros_like(data1)  # If no control, set to zeros
+        print("input format is wrong")
+    # Load cooler data for control
+    clr2 = cooler.Cooler(f'{cooler_file2}::resolutions/{resolution}')
+    if format == "balance":
+        data2 = clr2.matrix(balance=True).fetch(region).astype(float)
+    elif format == "ICE":
+            data2 = clr2.matrix(balance=False).fetch(region).astype(float)
+    else:
+        print("input format is wrong")
 
     # Compute difference matrix
     data_diff = None  # Initialize
@@ -548,8 +553,9 @@ def main():
     parser = argparse.ArgumentParser(description='Plot difference heatmap from cooler files with BigWig, BED tracks, gene annotations, and chromatin loops.')
 
     # Required arguments
-    parser.add_argument('--cooler_file1', type=str, required=True, help='Path to the case .cool or .mcool file.')
-    parser.add_argument('--cooler_file2', type=str, required=False, help='Path to the control .cool or .mcool file.', default=None)
+    parser.add_argument('--cooler_file1', type=str, required=True, help='Path to the case .mcool file.')
+    parser.add_argument('--cooler_file2', type=str, required=True, help='Path to the control .mcool file.')
+    parser.add_argument('--format', type=str, default='balance', choices=['balance', 'ICE'], help='Format of .mcool file.')
     parser.add_argument('--resolution', type=int, required=True, help='Resolution for the cooler data.')
     parser.add_argument('--start', type=int, required=True, help='Start position for the region of interest.')
     parser.add_argument('--end', type=int, required=True, help='End position for the region of interest.')
@@ -601,6 +607,8 @@ def main():
     # Call the plot_heatmaps function with the parsed arguments
     plot_heatmaps(
     cooler_file1=args.cooler_file1,
+    cooler_file2=args.cooler_file2,
+    format=args.format,
     bigwig_files_sample1=args.bigwig_files_sample1,
     bigwig_labels_sample1=args.bigwig_labels_sample1,
     colors_sample1=args.colors_sample1,
@@ -617,7 +625,6 @@ def main():
     vmin=args.vmin,
     vmax=args.vmax,
     output_file=args.output_file,
-    cooler_file2=args.cooler_file2,
     bigwig_files_sample2=args.bigwig_files_sample2,
     bigwig_labels_sample2=args.bigwig_labels_sample2,
     colors_sample2=args.colors_sample2,

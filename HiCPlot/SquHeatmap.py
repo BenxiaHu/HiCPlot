@@ -367,7 +367,7 @@ def plot_loops(ax, loop_file, region, color='purple', alpha=0.5, linewidth=1, la
     if label:
         ax.set_title(label, fontsize=8)  # Add sample name above the loop track
 
-def plot_heatmaps(cooler_file1, sampleid1=None,
+def plot_heatmaps(cooler_file1, sampleid1=None,format="balance",
                  bigwig_files_sample1=[], bigwig_labels_sample1=[], colors_sample1="red",
                  bed_files_sample1=[], bed_labels_sample1=[],
                  loop_file_sample1=None, loop_file_sample2=None,
@@ -386,14 +386,23 @@ def plot_heatmaps(cooler_file1, sampleid1=None,
     
     # Load cooler data
     clr1 = cooler.Cooler(f'{cooler_file1}::resolutions/{resolution}')
-    data1 = clr1.matrix(balance=True).fetch(region)
-    
+    if format == "balance":
+        data1 = clr1.matrix(balance=True).fetch(region).astype(float)
+    elif format == "ICE":
+        data1 = clr1.matrix(balance=False).fetch(region).astype(float)
+    else:
+        print("input format is wrong")
     # Load sample2 data if provided
     single_sample = cooler_file2 is None
     if not single_sample:
         clr2 = cooler.Cooler(f'{cooler_file2}::resolutions/{resolution}')
-        data2 = clr2.matrix(balance=True).fetch(region)
-    
+        if format == "balance":
+            data2 = clr2.matrix(balance=True).fetch(region).astype(float)
+        elif format == "ICE":
+            data2 = clr2.matrix(balance=False).fetch(region).astype(float)
+        else:
+            print("input format is wrong")
+
     # Apply normalization to Hi-C matrices
     if normalization_method == 'raw':
         normalized_data1 = data1
@@ -762,6 +771,8 @@ def main():
 
     parser.add_argument('--cooler_file1', type=str, required=True, help='Path to the first .cool or .mcool file.')
     parser.add_argument('--cooler_file2', type=str, required=False, help='Path to the second .cool or .mcool file.', default=None)
+    parser.add_argument('--format', type=str, default='balance', choices=['balance', 'ICE'], help='Format of .mcool file.')
+
     parser.add_argument('--resolution', type=int, default=10000, help='Resolution for the cooler data.')
     parser.add_argument('--start', type=int, default=10500000, help='Start position for the region of interest.')
     parser.add_argument('--end', type=int, default=13200000, help='End position for the region of interest.')
@@ -836,7 +847,8 @@ def main():
         track_size=args.track_size,
         track_spacing=args.track_spacing,
         normalization_method=args.normalization_method,
-        genes_to_annotate=args.genes_to_annotate
+        genes_to_annotate=args.genes_to_annotate,
+        format=args.format
     )
 if __name__ == '__main__':
     main()

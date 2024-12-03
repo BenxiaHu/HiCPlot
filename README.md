@@ -26,7 +26,8 @@ the output file is heatmaps and genome tracks.
     --diff_cmap bwr --diff_title "log2((sample1+1)/(sample2+1))" \
     --loop_file_sample1 Sample1_loops.csv \
     --loop_file_sample2 Sample2_loops.csv \
-    --genes_to_annotate "CTCF" "GFOD2"
+    --genes_to_annotate "CTCF" "GFOD2" \
+    --format "balance"
 ```
 **Square and Horizontal Heatmap**  
 ![Square and Horizontal Heatmap](./images/Square_horizontal_heatmap.png)
@@ -54,7 +55,8 @@ the output file is heatmaps and genome tracks.
     --normalization_method "log" \
     --loop_file_sample1 Sample1_loops.csv \
     --loop_file_sample2 Sample2_loops.csv \
-    --genes_to_annotate "CTCF" "GFOD2"
+    --genes_to_annotate "CTCF" "GFOD2" \
+    --format "balance"
 ``` 
 **Triangle and Horizontal Heatmap**  
 ![Triangle and Horizontal Heatmap](./images/Triangle_horizontal_heatmap.png)
@@ -84,7 +86,8 @@ the output file is heatmaps and genome tracks.
     --loop_file_sample1 /data/bxhu/project/DLR_AD/result/HiC/mustache/AD_merged_5kb_loops.csv \
     --loop_file_sample2 /data/bxhu/project/DLR_AD/result/HiC/mustache/Old_merged_5kb_loops.csv \
     --genes_to_annotate "CTCF" "GFOD2" \
-    --normalization_method 'raw' --title "Sample1 vs Sample2"
+    --normalization_method 'raw' --title "Sample1 vs Sample2" \
+    --format "balance"
 ```
 
 **lower and upper combined square Heatmap**  
@@ -115,7 +118,8 @@ the output file is heatmaps and genome tracks.
     --diff_cmap bwr --diff_title "log2((sample1+1)/(sample2+1))" \
     --loop_file_sample1 Sample1_loops.csv \
     --loop_file_sample2 Sample2_loops.csv \
-    --genes_to_annotate "CTCF" "GFOD2"
+    --genes_to_annotate "CTCF" "GFOD2" \
+    --format "balance"
 ```
 
 **Square division Heatmap**  
@@ -155,7 +159,7 @@ matplotlib
 pyBigWig  
 pyranges  
 
-#### pip install HiCPlot==1.18
-https://pypi.org/project/HiCPlot/1.18/
+#### pip install HiCPlot==1.19
+https://pypi.org/project/HiCPlot/1.19/
 
 
