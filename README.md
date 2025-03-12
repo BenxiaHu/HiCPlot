@@ -163,4 +163,5 @@ pyranges
 https://pypi.org/project/HiCPlot/1.19/
 
 ### Reference 
-Rewired 3D Genome Architecture in Sickle Cell Disease Mitigates T cell Ferroptosis in Renal Medullary Carcinoma.
+HiCPlot: A visualization tool for Hi-C data analysis (under review)
+Rewired 3D Genome Architecture in Sickle Cell Disease Mitigates T cell Ferroptosis in Renal Medullary Carcinoma (accepted into Immunity).
