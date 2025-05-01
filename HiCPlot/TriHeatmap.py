@@ -536,7 +536,10 @@ def plot_heatmaps(cooler_file1, sampleid1,format="balance",
         
         # Define height ratios
         loop_track_height = 0.3
-        height_ratios = [1, small_colorbar_height] + [loop_track_height]*num_loops + [0.5] * max_bigwig_bed_tracks + [0.5] * num_genes
+        if num_genes !=0:
+            height_ratios = [1, small_colorbar_height] + [loop_track_height]*num_loops + [0.5] * max_bigwig_bed_tracks + [0.5] * num_genes
+        else:
+            height_ratios = [1, small_colorbar_height] + [loop_track_height]*num_loops + [0.5] * max_bigwig_bed_tracks
         # Initialize GridSpec
         gs = gridspec.GridSpec(num_rows, ncols, height_ratios=height_ratios, hspace=0.5, wspace=0.3)
         # Define default figsize
@@ -623,7 +626,7 @@ def plot_heatmaps(cooler_file1, sampleid1,format="balance",
         if bigwig_files_sample1:
             for i in range(len(bigwig_files_sample1)):
                 bw_type = bigwig_labels_sample1[i].split("_")[1]
-                y_min, y_max = type_min_max.get(bw_type, (None, None))
+                y_min, y_max = type_min_max[bw_type]
                 ax_bw = f.add_subplot(gs[track_start_row + i, 0])
                 plot_seq(ax_bw, bigwig_files_sample1[i], region, color=colors_sample1, 
                          y_min=y_min, y_max=y_max)
@@ -635,7 +638,7 @@ def plot_heatmaps(cooler_file1, sampleid1,format="balance",
         if bigwig_files_sample2:
             for j in range(len(bigwig_files_sample2)):
                 bw_type = bigwig_labels_sample2[j].split("_")[1]
-                y_min, y_max = type_min_max.get(bw_type, (None, None))
+                y_min, y_max = type_min_max[bw_type]
                 ax_bw = f.add_subplot(gs[track_start_row + j, 1])
                 # Handle colors_sample2 being a list or single color
                 plot_seq(ax_bw, bigwig_files_sample2[j], region, color=colors_sample2, 
@@ -700,9 +703,14 @@ def plot_heatmaps(cooler_file1, sampleid1,format="balance",
         num_rows = max_cool_sample + num_colorbars + num_loops + max_tracks + num_genes
         # Define height ratios
         loop_track_height = 0.3
-        height_ratios = [track_height] * max_cool_sample + [small_colorbar_height] + \
+        if num_genes !=0:
+            height_ratios = [track_height] * max_cool_sample + [small_colorbar_height] + \
                         [loop_track_height]*num_loops + [track_height] * max_tracks + \
                         [track_height] * num_genes
+        else:
+            height_ratios = [track_height] * max_cool_sample + [small_colorbar_height] + \
+                        [loop_track_height]*num_loops + [track_height] * max_tracks
+
         # Initialize GridSpec
         gs = gridspec.GridSpec(num_rows, ncols, height_ratios=height_ratios, hspace=0.5)
         # Define default figsize
@@ -766,7 +774,7 @@ def plot_heatmaps(cooler_file1, sampleid1,format="balance",
         if bigwig_files_sample1:
             for i in range(len(bigwig_files_sample1)):
                 bw_type = bigwig_labels_sample1[i].split("_")[1]
-                y_min, y_max = type_min_max.get(bw_type, (None, None))
+                y_min, y_max = type_min_max[bw_type]
                 ax_bw = f.add_subplot(gs[track_start_row + i, 0])
                 plot_seq(ax_bw, bigwig_files_sample1[i], region, color=colors_sample1, 
                     y_min=y_min, y_max=y_max)
@@ -779,7 +787,7 @@ def plot_heatmaps(cooler_file1, sampleid1,format="balance",
         if bigwig_files_sample2:
             for j in range(len(bigwig_files_sample2)):
                 bw_type = bigwig_labels_sample2[j].split("_")[1]
-                y_min, y_max = type_min_max.get(bw_type, (None, None))
+                y_min, y_max = type_min_max[bw_type]
                 ax_bw = f.add_subplot(gs[track_start_row + j, 0])
                 plot_seq(ax_bw, bigwig_files_sample2[j], region, color=colors_sample2, 
                          y_min=y_min, y_max=y_max)

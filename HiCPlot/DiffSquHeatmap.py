@@ -456,8 +456,10 @@ def plot_heatmaps(
     small_colorbar_height = 0.1  # Adjust as needed
     track_height_ratio = 0.5  # Adjust as needed for BigWig/BED tracks
     loop_track_height = 0.3
-    height_ratios = [1] + [small_colorbar_height] + [loop_track_height]*num_loops+[track_height_ratio] * (max_tracks) + [track_height_ratio * num_genes]
-
+    if num_genes !=0:
+        height_ratios = [1] + [small_colorbar_height] + [loop_track_height]*num_loops+[track_height_ratio] * (max_tracks) + [track_height_ratio * num_genes]
+    else:
+        height_ratios = [1] + [small_colorbar_height] + [loop_track_height]*num_loops+[track_height_ratio] * (max_tracks)
     gs = gridspec.GridSpec(num_rows, 1, height_ratios=height_ratios, hspace=0.3)
     # Define default figsize
     width = track_size
@@ -507,7 +509,7 @@ def plot_heatmaps(
         for i in range(len(bigwig_files_sample1)):
             ax_bw = f.add_subplot(gs[track_start_row + i, 0])
             bw_type = bigwig_labels_sample1[i].split("_")[1]
-            y_min, y_max = type_min_max.get(bw_type, (None, None))
+            y_min, y_max = type_min_max[bw_type]
             plot_seq(ax_bw, bigwig_files_sample1[i], region, color=colors_sample1, 
                 y_min=y_min, y_max=y_max)
             ax_bw.set_title(f"{bigwig_labels_sample1[i]}", fontsize=8)
@@ -521,7 +523,7 @@ def plot_heatmaps(
             ax_bw = f.add_subplot(gs[track_start_row + len(bigwig_files_sample1) + j, 0])
             #bw_index = len(bigwig_files_sample2) + j
             bw_type = bigwig_labels_sample2[j].split("_")[1]
-            y_min, y_max = type_min_max.get(bw_type, (None, None))
+            y_min, y_max = type_min_max[bw_type]
             plot_seq(ax_bw, bigwig_files_sample2[j], region, color=colors_sample2, 
                 y_min=y_min, y_max=y_max)
             ax_bw.set_title(f"{bigwig_labels_sample2[j]}", fontsize=8)

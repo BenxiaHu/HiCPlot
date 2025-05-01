@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hicplot"
+version = "1.2.2"
+description = "plot heatmaps from Hi-C matrix and tracks from bigwig files"
+authors = [
+  { name = "Benxia Hu", email = "hubenxia@gmail.com" }
+]
+requires-python = ">=3.12"
+readme = "README.md"
+license = { text = "MIT" }
+dependencies = [
+  "numpy",
+  "pandas",
+  "argparse",
+  "matplotlib",
+  "pyBigWig",
+  "pyranges",
+  "cooler",
+]
+
+[project.urls]
+Homepage = "https://pypi.org/project/hicplot/"
+
+[project.scripts]
+TriHeatmap = "HiCPlot.TriHeatmap:main"
+SquHeatmap = "HiCPlot.SquHeatmap:main"
+NGStrack = "HiCPlot.NGStrack:main"
+DiffSquHeatmap = "HiCPlot.DiffSquHeatmap:main"
+upper_lower_triangle_heatmap = "HiCPlot.upper_lower_triangle_heatmap:main"

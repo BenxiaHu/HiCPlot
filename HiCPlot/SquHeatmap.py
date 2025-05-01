@@ -495,8 +495,10 @@ def plot_heatmaps(cooler_file1, sampleid1=None,format="balance",
         small_colorbar_height = 0.1  # Reduced height
         loop_track_height = 0.3
         track_height = 0.5  # Adjust as needed for BigWig/BED tracks
-        height_ratios = [1, small_colorbar_height] + [loop_track_height]*num_loops + [track_height] * max_bigwig_bed_tracks + [track_height * num_genes]
-        
+        if num_genes !=0:
+            height_ratios = [1, small_colorbar_height] + [loop_track_height]*num_loops + [track_height] * max_bigwig_bed_tracks + [track_height * num_genes]
+        else:
+            height_ratios = [1, small_colorbar_height] + [loop_track_height]*num_loops + [track_height] * max_bigwig_bed_tracks 
         # Calculate scaling factor to make the main heatmap row height equal to track_size (in inches)
         per_unit = track_size / height_ratios[0]  # track_size=5 inches / 1 = 5 inches per unit
         
@@ -576,7 +578,7 @@ def plot_heatmaps(cooler_file1, sampleid1=None,format="balance",
             for i in range(len(bigwig_files_sample1)):
                 ax_bw = f.add_subplot(gs[track_start_row + i, 0])
                 bw_type = bigwig_labels_sample1[i].split("_")[1]
-                y_min, y_max = type_min_max.get(bw_type, (None, None))
+                y_min, y_max = type_min_max[bw_type]
                 plot_seq(ax_bw, bigwig_files_sample1[i], region, color=colors_sample1, 
                          y_min=y_min, y_max=y_max)
                 ax_bw.set_title(f"{bigwig_labels_sample1[i]}", fontsize=8)
@@ -589,7 +591,7 @@ def plot_heatmaps(cooler_file1, sampleid1=None,format="balance",
             for j in range(len(bigwig_files_sample2)):
                 ax_bw = f.add_subplot(gs[track_start_row + j, 1])
                 bw_type = bigwig_labels_sample2[j].split("_")[1]
-                y_min, y_max = type_min_max.get(bw_type, (None, None))
+                y_min, y_max = type_min_max[bw_type]
                 plot_seq(ax_bw, bigwig_files_sample2[j], region, color=colors_sample2, 
                          y_min=y_min, y_max=y_max)
                 ax_bw.set_title(f"{bigwig_labels_sample2[j]}", fontsize=8)
@@ -652,8 +654,10 @@ def plot_heatmaps(cooler_file1, sampleid1=None,format="balance",
         small_colorbar_height = 0.1  # Adjust as needed
         track_height_ratio = 0.5  # Adjust as needed for BigWig/BED tracks
         loop_track_height = 0.3
-        height_ratios = [1] * max_cool_sample + [small_colorbar_height]*1 + [loop_track_height]*num_loops+[track_height_ratio] * (max_tracks) + [track_height_ratio * num_genes]
-
+        if num_genes !=0:
+            height_ratios = [1] * max_cool_sample + [small_colorbar_height]*1 + [loop_track_height]*num_loops+[track_height_ratio] * (max_tracks) + [track_height_ratio * num_genes]
+        else:
+            height_ratios = [1] * max_cool_sample + [small_colorbar_height]*1 + [loop_track_height]*num_loops+[track_height_ratio] * (max_tracks)
         # Initialize GridSpec
         gs = gridspec.GridSpec(num_rows, 1, height_ratios=height_ratios, hspace=0.3)
         # Define default figsize if not provided
@@ -719,7 +723,7 @@ def plot_heatmaps(cooler_file1, sampleid1=None,format="balance",
             for i in range(len(bigwig_files_sample1)):
                 ax_bw = f.add_subplot(gs[track_start_row + i, 0])
                 bw_type = bigwig_labels_sample1[i].split("_")[1]
-                y_min, y_max = type_min_max.get(bw_type, (None, None))
+                y_min, y_max = type_min_max[bw_type]
                 plot_seq(ax_bw, bigwig_files_sample1[i], region, color=colors_sample1, 
                     y_min=y_min, y_max=y_max)
                 ax_bw.set_title(f"{bigwig_labels_sample1[i]}", fontsize=8)
@@ -733,7 +737,7 @@ def plot_heatmaps(cooler_file1, sampleid1=None,format="balance",
             for j in range(len(bigwig_files_sample2)):
                 ax_bw = f.add_subplot(gs[track_start_row + j, 0])
                 bw_type = bigwig_labels_sample2[j].split("_")[1]
-                y_min, y_max = type_min_max.get(bw_type, (None, None))
+                y_min, y_max = type_min_max[bw_type]
                 plot_seq(ax_bw, bigwig_files_sample2[j], region, color=colors_sample2, 
                          y_min=y_min, y_max=y_max)
                 ax_bw.set_title(f"{bigwig_labels_sample2[j]}", fontsize=8)

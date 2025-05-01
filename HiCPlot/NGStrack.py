@@ -320,7 +320,10 @@ def plot_tracks(
         max_bigwig_bed_tracks = max_bigwig_sample + max_bed_sample
 
         num_rows = max_bigwig_bed_tracks + num_genes
-        height_ratios = [track_height] * max_bigwig_bed_tracks + [track_height] * num_genes
+        if num_genes !=0:
+            height_ratios = [track_height] * max_bigwig_bed_tracks + [track_height] * num_genes
+        else:
+            height_ratios = [track_height] * max_bigwig_bed_tracks
         gs = gridspec.GridSpec(num_rows, ncols, height_ratios=height_ratios, hspace=0.5, wspace=0.3)
         width = track_width * ncols
         height = (track_height * num_rows)
@@ -341,7 +344,7 @@ def plot_tracks(
             for i in range(len(bigwig_files_sample1)):
                 ax_bw1 = f.add_subplot(gs[track_start_row + i, 0])
                 bw_type = bigwig_labels_sample1[i].split("_")[1]
-                y_min, y_max = type_min_max.get(bw_type, (None, None))
+                y_min, y_max = type_min_max[bw_type]
                 plot_seq(ax_bw1, bigwig_files_sample1[i], (chrid, start, end), color=colors_sample1,
                      y_min=y_min, y_max=y_max)
                 ax_bw1.set_title(f"{bigwig_labels_sample1[i]}", fontsize=8)
@@ -355,7 +358,7 @@ def plot_tracks(
             for j in range(len(bigwig_files_sample2)):
                 ax_bw2 = f.add_subplot(gs[track_start_row + j, 1])
                 bw_type = bigwig_labels_sample2[j].split("_")[1]
-                y_min, y_max = type_min_max.get(bw_type, (None, None))
+                y_min, y_max = type_min_max[bw_type]
                 plot_seq(ax_bw2, bigwig_files_sample2[j], (chrid, start, end), color=colors_sample2,
                      y_min=y_min, y_max=y_max)
                 ax_bw2.set_title(f"{bigwig_labels_sample2[j]}", fontsize=8)
@@ -423,7 +426,7 @@ def plot_tracks(
             for i in range(len(bigwig_files_sample1)):
                 ax_bw = f.add_subplot(gs[track_start_row + i, 0])
                 bw_type = bigwig_labels_sample1[i].split("_")[1]
-                y_min, y_max = type_min_max.get(bw_type, (None, None))
+                y_min, y_max = type_min_max[bw_type]
                 plot_seq(ax_bw, bigwig_files_sample1[i], region, color=colors_sample1, 
                     y_min=y_min, y_max=y_max)
                 ax_bw.set_title(f"{bigwig_labels_sample1[i]}", fontsize=8)
@@ -437,7 +440,7 @@ def plot_tracks(
             for j in range(len(bigwig_files_sample2)):
                 ax_bw = f.add_subplot(gs[track_start_row + j, 0])
                 bw_type = bigwig_labels_sample2[j].split("_")[1]
-                y_min, y_max = type_min_max.get(bw_type, (None, None))
+                y_min, y_max = type_min_max[bw_type]
                 plot_seq(ax_bw, bigwig_files_sample2[j], region, color=colors_sample2, 
                     y_min=y_min, y_max=y_max)
                 ax_bw.set_title(f"{bigwig_labels_sample2[j]}", fontsize=8)

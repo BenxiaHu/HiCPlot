@@ -5,7 +5,7 @@ version_py = "HiCPlot/_version.py"
 exec(open(version_py).read())
 
 setup(
-    name="HiCPlot", # Replace with your own username
+    name="hicplot", # Replace with your own username
     version=__version__,
     author="Benxia Hu",
     author_email="hubenxia@gmail.com",
