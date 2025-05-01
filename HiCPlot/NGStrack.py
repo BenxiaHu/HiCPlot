@@ -275,7 +275,7 @@ def plot_tracks(
     gtf_file=None,
     genes_to_annotate=None,
     chrid=None, start=None, end=None,
-    cmap='autumn_r', vmin=None, vmax=None,
+    track_min=None, track_max=None,
     output_file='comparison_tracks.pdf',
     layout='vertical',
     track_width=10, track_height=1, track_spacing=0.5
@@ -299,9 +299,8 @@ def plot_tracks(
     - chrid: Chromosome ID.
     - start: Start position of the region.
     - end: End position of the region.
-    - cmap: Colormap for plots.
-    - vmin: Minimum value for scaling.
-    - vmax: Maximum value for scaling.
+    - track_min: Minimum value for scaling.
+    - track_max: Maximum value for scaling.
     - output_file: Filename for the saved PDF.
     - layout: 'horizontal' or 'vertical'.
     - track_width: Width of each track in inches.
@@ -329,7 +328,10 @@ def plot_tracks(
         f = plt.figure(figsize=figsize)
 
         # Compute global min and max per BigWig type
-        type_min_max = get_track_min_max(bigwig_files_sample1, bigwig_labels_sample1,
+        if track_min is not None and track_max is not None:
+            type_min_max = defaultdict(lambda: (track_min, track_max))
+        else:
+            type_min_max = get_track_min_max(bigwig_files_sample1, bigwig_labels_sample1,
                                         bigwig_files_sample2, bigwig_labels_sample2,
                                         region=region)
 
@@ -408,7 +410,10 @@ def plot_tracks(
         f = plt.figure(figsize=figsize)
         
         # Compute global min and max per BigWig type
-        type_min_max = get_track_min_max(bigwig_files_sample1, bigwig_labels_sample1,
+        if track_min is not None and track_max is not None:
+            type_min_max = defaultdict(lambda: (track_min, track_max))
+        else:
+            type_min_max = get_track_min_max(bigwig_files_sample1, bigwig_labels_sample1,
                                         bigwig_files_sample2, bigwig_labels_sample2,
                                         region=region)
         # Plot BigWig and BED tracks
@@ -503,9 +508,8 @@ def main():
     parser.add_argument('--chrid', type=str, required=True, help='Chromosome ID.')
 
     # Visualization parameters
-    parser.add_argument('--cmap', type=str, default='autumn_r', help='Colormap to be used for plotting.')
-    parser.add_argument('--vmin', type=float, default=None, help='Minimum value for LogNorm scaling.')
-    parser.add_argument('--vmax', type=float, default=None, help='Maximum value for LogNorm scaling.')
+    parser.add_argument('--track_min', type=float, default=None, help='Global minimum value for all BigWig tracks.')
+    parser.add_argument('--track_max', type=float, default=None, help='Global maximum value for all BigWig tracks.')
     parser.add_argument('--output_file', type=str, default='comparison_tracks.pdf', help='Filename for the saved comparison tracks PDF.')
 
     # Track dimensions and spacing
@@ -541,9 +545,8 @@ def main():
         chrid=args.chrid,
         start=args.start,
         end=args.end,
-        cmap=args.cmap,
-        vmin=args.vmin,
-        vmax=args.vmax,
+        track_min=args.track_min,
+        track_max=args.track_max,
         output_file=args.output_file,
         layout=args.layout,
         track_width=args.track_width,

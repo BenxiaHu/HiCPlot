@@ -374,6 +374,7 @@ def plot_heatmaps(cooler_file1, sampleid1=None,format="balance",
                  gtf_file=None, resolution=None,
                  start=None, end=None, chrid=None,
                  cmap='autumn_r', vmin=None, vmax=None,
+                 track_min=None,track_max=None,
                  output_file='comparison_heatmap.pdf', layout='horizontal',
                  cooler_file2=None, sampleid2=None,
                  bigwig_files_sample2=[], bigwig_labels_sample2=[], colors_sample2="blue",
@@ -562,7 +563,10 @@ def plot_heatmaps(cooler_file1, sampleid1=None,format="balance",
             current_row += 1
 
         # Compute global min and max per BigWig type
-        type_min_max = get_track_min_max(bigwig_files_sample1, bigwig_labels_sample1,
+        if track_min is not None and track_max is not None:
+            type_min_max = defaultdict(lambda: (track_min, track_max))
+        else:
+            type_min_max = get_track_min_max(bigwig_files_sample1, bigwig_labels_sample1,
                                         bigwig_files_sample2, bigwig_labels_sample2,
                                         region=region)
         # Plot BigWig and BED tracks
@@ -702,7 +706,10 @@ def plot_heatmaps(cooler_file1, sampleid1=None,format="balance",
             current_row += 1
 
         # Compute global min and max per BigWig type
-        type_min_max = get_track_min_max(bigwig_files_sample1, bigwig_labels_sample1,
+        if track_min is not None and track_max is not None:
+            type_min_max = defaultdict(lambda: (track_min, track_max))
+        else:
+            type_min_max = get_track_min_max(bigwig_files_sample1, bigwig_labels_sample1,
                                         bigwig_files_sample2, bigwig_labels_sample2,
                                         region=region)
 
@@ -785,7 +792,6 @@ def main():
                         help="Layout of the heatmaps: 'horizontal' or 'vertical'.")
     parser.add_argument('--sampleid1', type=str, default='Sample1', help='Sample ID for the first dataset.')
     parser.add_argument('--sampleid2', type=str, default='Sample2', help='Sample ID for the second dataset.')
-    parser.add_argument('--gtf_file', type=str, required=True, help='Path to the GTF file for gene annotations.')
     
     # BigWig arguments
     parser.add_argument('--bigwig_files_sample1', type=str, nargs='*', help='Paths to BigWig files for sample 1.', default=[])
@@ -812,9 +818,12 @@ def main():
     parser.add_argument('--loop_file_sample1', type=str, help='Path to the chromatin loop file for sample 1.', default=None)
     parser.add_argument('--loop_file_sample2', type=str, help='Path to the chromatin loop file for sample 2.', default=None)
     # Gene annotation arguments
+    parser.add_argument('--gtf_file', type=str, required=False, help='Path to the GTF file for gene annotations.', default=None)
     parser.add_argument('--genes_to_annotate', type=str, nargs='*', help='Gene names to annotate.', default=None)
     parser.add_argument("-V", "--version", action="version",version="SquHeatmap {}".format(__version__)\
                       ,help="Print version and exit")
+    parser.add_argument('--track_min', type=float, default=None, help='Global minimum value for all BigWig tracks.')
+    parser.add_argument('--track_max', type=float, default=None, help='Global maximum value for all BigWig tracks.')
     args = parser.parse_args()
     # Call the plotting function
     plot_heatmaps(
@@ -836,6 +845,8 @@ def main():
         cmap=args.cmap,
         vmin=args.vmin,
         vmax=args.vmax,
+        track_min=args.track_min,
+        track_max=args.track_max,
         output_file=args.output_file,
         layout=args.layout,
         cooler_file2=args.cooler_file2,

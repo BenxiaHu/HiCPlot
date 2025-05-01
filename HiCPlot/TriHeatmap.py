@@ -418,6 +418,7 @@ def plot_heatmaps(cooler_file1, sampleid1,format="balance",
                  bed_files_sample2=[], bed_labels_sample2=[],
                  resolution=None,start=None, end=None, chrid=None,
                  cmap='autumn_r', vmin=None, vmax=None,
+                 track_min=None,track_max=None,
                  output_file='comparison_heatmap.pdf', layout='horizontal',
                  track_width=10, track_height=1, track_spacing=0.5,
                  normalization_method='raw', genes_to_annotate=None):  # Added normalization_method
@@ -610,9 +611,12 @@ def plot_heatmaps(cooler_file1, sampleid1,format="balance",
             current_row += 1
 
         # Compute global min and max per BigWig type
-        type_min_max = get_track_min_max(bigwig_files_sample1, bigwig_labels_sample1,
+        if track_min is not None and track_max is not None:
+            type_min_max = defaultdict(lambda: (track_min, track_max))
+        else:
+            type_min_max = get_track_min_max(bigwig_files_sample1, bigwig_labels_sample1,
                                         bigwig_files_sample2, bigwig_labels_sample2,
-                                        layoutid=layout, region=region)
+                                        region=region)
         # Plot BigWig and BED tracks
         track_start_row = current_row
         # Plot BigWig tracks for Sample1
@@ -750,9 +754,12 @@ def plot_heatmaps(cooler_file1, sampleid1,format="balance",
             current_row += 1
 
         # Compute global min and max per BigWig type
-        type_min_max = get_track_min_max(bigwig_files_sample1, bigwig_labels_sample1,
+        if track_min is not None and track_max is not None:
+            type_min_max = defaultdict(lambda: (track_min, track_max))
+        else:
+            type_min_max = get_track_min_max(bigwig_files_sample1, bigwig_labels_sample1,
                                         bigwig_files_sample2, bigwig_labels_sample2,
-                                        layoutid=layout, region=region)
+                                        region=region)
         # Plot BigWig and BED tracks
         # Sample1 BigWig
         track_start_row = current_row
@@ -863,6 +870,8 @@ def main():
     parser.add_argument('--loop_file_sample1', type=str, help='Path to the chromatin loop file for sample 1.', default=None)
     parser.add_argument('--loop_file_sample2', type=str, help='Path to the chromatin loop file for sample 2.', default=None)
     # Gene annotation arguments
+    parser.add_argument('--track_min', type=float, default=None, help='Global minimum value for all BigWig tracks.')
+    parser.add_argument('--track_max', type=float, default=None, help='Global maximum value for all BigWig tracks.')
     parser.add_argument('--genes_to_annotate', type=str, nargs='*', help='Gene names to annotate.', default=None)
     parser.add_argument("-V", "--version", action="version",version="TriHeatmap {}".format(__version__)\
                       ,help="Print version and exit")
@@ -893,6 +902,8 @@ def main():
         cmap=args.cmap,
         vmin=args.vmin,
         vmax=args.vmax,
+        track_min=args.track_min,
+        track_max=args.track_max,
         output_file=args.output_file,
         layout=args.layout,
         track_width=args.track_width,

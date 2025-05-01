@@ -340,6 +340,7 @@ def plot_heatmaps(
     gtf_file=None, resolution=None,
     start=None, end=None, chrid=None,
     cmap='autumn_r', vmin=None, vmax=None,
+    track_min=None,track_max=None,
     output_file='comparison_heatmap.pdf',
     bigwig_files_sample2=[], bigwig_labels_sample2=[], colors_sample2="blue",
     bed_files_sample2=[], bed_labels_sample2=[],
@@ -492,7 +493,10 @@ def plot_heatmaps(
         current_row += 1
 
     # Compute global min and max per BigWig type
-    type_min_max = get_track_min_max(bigwig_files_sample1, bigwig_labels_sample1,
+    if track_min is not None and track_max is not None:
+        type_min_max = defaultdict(lambda: (track_min, track_max))
+    else:
+        type_min_max = get_track_min_max(bigwig_files_sample1, bigwig_labels_sample1,
                                         bigwig_files_sample2, bigwig_labels_sample2,
                                         region=region)
 
@@ -568,7 +572,6 @@ def main():
     parser.add_argument('--start', type=int, required=True, help='Start position for the region of interest.')
     parser.add_argument('--end', type=int, required=True, help='End position for the region of interest.')
     parser.add_argument('--chrid', type=str, required=True, help='Chromosome ID.')
-    parser.add_argument('--gtf_file', type=str, required=True, help='Path to the GTF file for gene annotations.')
 
     # Optional arguments
     parser.add_argument('--cmap', type=str, default='autumn_r', help='Colormap to be used for plotting other tracks.')
@@ -605,8 +608,10 @@ def main():
     # Track dimensions and spacing
     parser.add_argument('--track_size', type=float, default=5, help='Height of each track (in inches).')
     parser.add_argument('--track_spacing', type=float, default=0.5, help='Spacing between tracks (in inches).')
-
+    parser.add_argument('--track_min', type=float, default=None, help='Global minimum value for all BigWig tracks.')
+    parser.add_argument('--track_max', type=float, default=None, help='Global maximum value for all BigWig tracks.')
     # Gene annotation arguments
+    parser.add_argument('--gtf_file', type=str, required=False, help='Path to the GTF file for gene annotations.', default=None)
     parser.add_argument('--genes_to_annotate', type=str, nargs='*', help='Gene names to annotate.', default=None)
     parser.add_argument("-V", "--version", action="version",version="DiffSquHeatmap {}".format(__version__)\
                       ,help="Print version and exit")
@@ -632,6 +637,8 @@ def main():
     cmap=args.cmap,
     vmin=args.vmin,
     vmax=args.vmax,
+    track_min=args.track_min,
+    track_max=args.track_max,
     output_file=args.output_file,
     bigwig_files_sample2=args.bigwig_files_sample2,
     bigwig_labels_sample2=args.bigwig_labels_sample2,
