@@ -386,22 +386,30 @@ def plot_heatmaps(
         if division_method == 'raw':
             # Raw division
             with np.errstate(divide='ignore', invalid='ignore'):
+                data1 = np.maximum(data1, 1e-10)
+                data2 = np.maximum(data2, 1e-10)
                 data_diff = np.divide(data1, data2)
                 data_diff[~np.isfinite(data_diff)] = 0  # Replace inf and NaN with 0
         elif division_method == 'log2':
             # Log2(case / control)
             with np.errstate(divide='ignore', invalid='ignore'):
+                data1 = np.maximum(data1, 1e-10)
+                data2 = np.maximum(data2, 1e-10)
                 ratio = np.divide(data1, data2)
                 ratio[ratio <= 0] = np.nan  # Avoid log2 of non-positive numbers
                 data_diff = np.log2(ratio)
         elif division_method == 'add1':
             # (case +1) / (control +1)
             with np.errstate(divide='ignore', invalid='ignore'):
+                data1 = np.maximum(data1, 1e-10)
+                data2 = np.maximum(data2, 1e-10)
                 data_diff = np.divide(data1 + 1, data2 + 1)
                 data_diff[~np.isfinite(data_diff)] = 0
         elif division_method == 'log2_add1':
             # log2((case +1) / (control +1))
             with np.errstate(divide='ignore', invalid='ignore'):
+                data1 = np.maximum(data1, 1e-10)
+                data2 = np.maximum(data2, 1e-10)
                 ratio = np.divide(data1 + 1, data2 + 1)
                 ratio[ratio <= 0] = np.nan
                 data_diff = np.log2(ratio)

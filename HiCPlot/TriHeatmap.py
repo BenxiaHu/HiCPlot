@@ -456,8 +456,8 @@ def plot_heatmaps(cooler_file1, sampleid1,format="balance",
         normalized_data1 = data1
         normalized_data2 = data2 if not single_sample else None
     elif normalization_method == 'LogNorm':
-        normalized_data1 = data1
-        normalized_data2 = data2 if not single_sample else None
+        normalized_data1 = np.maximum(data1, 1e-10)
+        normalized_data2 = np.maximum(data2, 1e-10) if not single_sample else None
     elif normalization_method == 'log2':
         normalized_data1 = np.log2(np.maximum(data1, 1e-10))
         if not single_sample:

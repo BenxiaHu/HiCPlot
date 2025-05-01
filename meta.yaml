@@ -1,26 +1,29 @@
 package:
   name: hicplot
-  version: 1.0.5
+  version: 1.19
 
 source:
-  url: https://files.pythonhosted.org/packages/f1/22/d754cda73920af8396981bf20dff356fa2652e96da4b246dd60b8d6de9b5/hicplot-1.0.4.tar.gz
-  md5: f14b4cfd775cf3c32f14547da6bfa5eb
+  url: https://files.pythonhosted.org/packages/cf/ec/002fc4f17a90dc9c8e01ff580af872b2f6db7ce3c1126c2d6ea58e7dbe91/hicplot-1.19.tar.gz
+  md5: 29d242c4ebccbc8b21b03bd47bd6bc25
 
 build:
   number: 0
 
 requirements:
   build:
-    - python >=3.12
-    - setuptools
-  run:
-    - python >=3.12
+    - python =3.12
     - numpy =1.26.4
-    - pandas ==1.4.3
+    - cython
+    - setuptools
+    - pip
+  run:
+    - python =3.12
+    - numpy =1.26.4
+    - pandas =1.4.3
     - matplotlib
     - pyBigWig
-    - pyranges ==0.0.117
-    - cooler
+    - pyranges =0.0.117
+    - cooler =0.10.2
 
 about:
   home: https://github.com/BenxiaHu/HiCPlot
