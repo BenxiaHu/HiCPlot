@@ -150,7 +150,7 @@ def read_bigwig(file_path, region):
 
 def get_track_min_max(bigwig_files_sample1, bigwig_labels_sample1,
                       bigwig_files_sample2, bigwig_labels_sample2,
-                      layoutid, region):
+                      region):
     """
     Compute the minimum and maximum values for BigWig tracks per type to ensure consistent y-axis scaling.
 
@@ -159,7 +159,6 @@ def get_track_min_max(bigwig_files_sample1, bigwig_labels_sample1,
     - bigwig_labels_sample1: List of labels corresponding to BigWig files for sample 1.
     - bigwig_files_sample2: List of BigWig files for sample 2.
     - bigwig_labels_sample2: List of labels corresponding to BigWig files for sample 2.
-    - layoutid: Layout type ('horizontal' or 'vertical').
     - region: Tuple containing (chromosome, start, end).
 
     Returns:
@@ -402,7 +401,7 @@ def pcolormesh_triangle(ax, matrix, start=0, resolution=1, NORM=True,vmin=None, 
     x, y = matrix_a[:, 1].reshape(n + 1, n + 1), matrix_a[:, 0].reshape(n + 1, n + 1)
     if NORM:
         norm = LogNorm(vmin=vmin, vmax=vmax)
-        im = ax.pcolormesh(x, y, np.flipud(matrix), norm=norm,vmin=vmin, vmax=vmax, cmap=cmap, *args, **kwargs)
+        im = ax.pcolormesh(x, y, np.flipud(matrix), norm=norm, cmap=cmap, *args, **kwargs)
     else:
         im = ax.pcolormesh(x, y, np.flipud(matrix), vmin=vmin, vmax=vmax, cmap=cmap, *args, **kwargs)
     ax.yaxis.set_visible(False)
