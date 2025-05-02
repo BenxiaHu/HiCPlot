@@ -22,7 +22,7 @@ the output file is heatmaps and genome tracks.
     --output_file "Square_horizontal_heatmap.pdf" \
     --track_size 4 \
     --track_spacing 0.5 \
-    --division_method log2_add1 \
+    --normalization_method log2_add1 \
     --diff_cmap bwr --diff_title "log2((sample1+1)/(sample2+1))" \
     --loop_file_sample1 Sample1_loops.csv \
     --loop_file_sample2 Sample2_loops.csv \
@@ -159,7 +159,7 @@ matplotlib
 pyBigWig  
 pyranges  
 
-#### pip install HiCPlot==1.25
-https://pypi.org/project/HiCPlot/1.25/
+#### pip install HiCPlot==1.29
+https://pypi.org/project/HiCPlot/1.29/
 
 

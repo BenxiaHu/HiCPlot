@@ -400,7 +400,8 @@ def pcolormesh_triangle(ax, matrix, start=0, resolution=1, NORM=True,vmin=None, 
             t)
     x, y = matrix_a[:, 1].reshape(n + 1, n + 1), matrix_a[:, 0].reshape(n + 1, n + 1)
     if NORM:
-        norm = LogNorm(vmin=vmin, vmax=vmax)
+        log_vmin = vmin if vmin is not None and vmin > 0 else None
+        norm = LogNorm(vmin=log_vmin, vmax=vmax, clip=False)
         im = ax.pcolormesh(x, y, np.flipud(matrix), norm=norm, cmap=cmap, *args, **kwargs)
     else:
         im = ax.pcolormesh(x, y, np.flipud(matrix), vmin=vmin, vmax=vmax, cmap=cmap, *args, **kwargs)
@@ -451,25 +452,27 @@ def plot_heatmaps(cooler_file1, sampleid1,format="balance",
             data2 = clr2.matrix(balance=False).fetch(region).astype(float)
         else:
             print("input format is wrong")
+
     # Apply normalization to Hi-C matrices
     if normalization_method == 'raw':
         normalized_data1 = data1
         normalized_data2 = data2 if not single_sample else None
-    elif normalization_method == 'LogNorm':
-        normalized_data1 = np.maximum(data1, 1e-10)
-        normalized_data2 = np.maximum(data2, 1e-10) if not single_sample else None
-    elif normalization_method == 'log2':
-        normalized_data1 = np.log2(np.maximum(data1, 1e-10))
+    elif normalization_method == 'logNorm':
+        normalized_data1 = np.maximum(data1, 0)
         if not single_sample:
-            normalized_data2 = np.log2(np.maximum(data2, 1e-10))
+            normalized_data2 = np.maximum(data2, 0)
+    elif normalization_method == 'log2':
+        normalized_data1 = np.log2(data1)
+        if not single_sample:
+            normalized_data2 = np.log2(data2)
     elif normalization_method == 'log2_add1':
         normalized_data1 = np.log2(data1 + 1)
         if not single_sample:
             normalized_data2 = np.log2(data2 + 1)
     elif normalization_method == 'log':
-        normalized_data1 = np.log(np.maximum(data1, 1e-10))
+        normalized_data1 = np.log(data1)
         if not single_sample:
-            normalized_data2 = np.log(np.maximum(data2, 1e-10))
+            normalized_data2 = np.log(data2)
     elif normalization_method == 'log_add1':
         normalized_data1 = np.log(data1 + 1)
         if not single_sample:
@@ -480,23 +483,30 @@ def plot_heatmaps(cooler_file1, sampleid1,format="balance",
     # Determine vmin and vmax if not provided
     if vmin is None and vmax is None:
         if single_sample:
-            global_min = np.nanmin(normalized_data1)
-            global_max = np.nanmax(normalized_data1)
+            vmin = np.nanmin(normalized_data1)
+            vmax = np.nanmax(normalized_data1)
         else:
-            global_min = min(np.nanmin(normalized_data1), np.nanmin(normalized_data2))
-            global_max = max(np.nanmax(normalized_data1), np.nanmax(normalized_data2))
-        vmin = global_min
-        vmax = global_max
+            vmin = min(np.nanmin(normalized_data1), np.nanmin(normalized_data2))
+            vmax = max(np.nanmax(normalized_data1), np.nanmax(normalized_data2))
     elif vmin is None:
         if normalization_method.startswith('log'):
-            vmin = np.nanmin(normalized_data1)
+            if single_sample:
+                vmin = np.nanmin(normalized_data1)
+            else:
+                vmin = min(np.nanmin(normalized_data1), np.nanmin(normalized_data2))
         else:
             vmin = 0  # For raw data
     elif vmax is None:
         if normalization_method.startswith('log'):
-            vmax = np.nanmax(normalized_data1)
+            if single_sample:
+                vmax = np.nanmax(normalized_data1)
+            else:
+                vmax = max(np.nanmax(normalized_data1), np.nanmax(normalized_data2))
         else:
-            vmax = np.nanmax(normalized_data1)
+            if single_sample:
+                vmax = np.nanmax(normalized_data1)
+            else:
+                vmax = max(np.nanmax(normalized_data1), np.nanmax(normalized_data2))
     
     # Formatter for big positions
     bp_formatter = EngFormatter()
@@ -549,7 +559,7 @@ def plot_heatmaps(cooler_file1, sampleid1,format="balance",
         
         # Plot Heatmaps
         ax_heatmap1 = f.add_subplot(gs[0, 0])
-        if normalization_method == "LogNorm":
+        if normalization_method == "logNorm":
             im1 = pcolormesh_triangle(ax_heatmap1, normalized_data1, start=region[1], resolution=resolution, NORM=True,vmin=vmin, vmax=vmax,cmap=cmap)
         else:
             im1 = pcolormesh_triangle(ax_heatmap1, normalized_data1, start=region[1], resolution=resolution, NORM=False,vmin=vmin, vmax=vmax,cmap=cmap)
@@ -561,7 +571,7 @@ def plot_heatmaps(cooler_file1, sampleid1,format="balance",
         
         if not single_sample:
             ax_heatmap2 = f.add_subplot(gs[0, 1])
-            if normalization_method == "LogNorm":
+            if normalization_method == "logNorm":
                 im2 = pcolormesh_triangle(ax_heatmap2, normalized_data2, start=region[1], resolution=resolution, NORM=True,vmin=vmin, vmax=vmax,cmap=cmap)
             else:
                 im2 = pcolormesh_triangle(ax_heatmap2, normalized_data2, start=region[1], resolution=resolution, NORM=False,vmin=vmin, vmax=vmax,cmap=cmap)
@@ -720,7 +730,7 @@ def plot_heatmaps(cooler_file1, sampleid1,format="balance",
         f = plt.figure(figsize=figsize)
         # Plot Heatmaps
         ax_heatmap1 = f.add_subplot(gs[0, 0])
-        if normalization_method == "LogNorm":
+        if normalization_method == "logNorm":
             im1 = pcolormesh_triangle(ax_heatmap1, normalized_data1, start=region[1], resolution=resolution, NORM=True,vmin=vmin, vmax=vmax,cmap=cmap)
         else:
             im1 = pcolormesh_triangle(ax_heatmap1, normalized_data1, start=region[1], resolution=resolution, NORM=False,vmin=vmin, vmax=vmax,cmap=cmap)
@@ -732,7 +742,7 @@ def plot_heatmaps(cooler_file1, sampleid1,format="balance",
         
         if not single_sample:
             ax_heatmap2 = f.add_subplot(gs[1, 0])
-            if normalization_method == "LogNorm":
+            if normalization_method == "logNorm":
                 im2 = pcolormesh_triangle(ax_heatmap2, normalized_data2, start=region[1], resolution=resolution, NORM=True,vmin=vmin, vmax=vmax,cmap=cmap)
             else:
                 im2 = pcolormesh_triangle(ax_heatmap2, normalized_data2, start=region[1], resolution=resolution, NORM=False,vmin=vmin, vmax=vmax,cmap=cmap)
@@ -841,8 +851,8 @@ def main():
     parser.add_argument('--chrid', type=str, default='chr2', help='Chromosome ID.')
     # Visualization parameters
     parser.add_argument('--cmap', type=str, default='autumn_r', help='Colormap to be used for plotting.')
-    parser.add_argument('--vmin', type=float, default=None, help='Minimum value for LogNorm scaling.')
-    parser.add_argument('--vmax', type=float, default=None, help='Maximum value for LogNorm scaling.')
+    parser.add_argument('--vmin', type=float, default=None, help='Minimum value for Hi-C matrix.')
+    parser.add_argument('--vmax', type=float, default=None, help='Maximum value for Hi-C matrix.')
     parser.add_argument('--output_file', type=str, default='comparison_heatmap.pdf', help='Filename for the saved comparison heatmap PDF.')
     parser.add_argument('--layout', type=str, default='horizontal', choices=['horizontal', 'vertical'], help="Layout of the heatmaps: 'horizontal' or 'vertical'.")
     # Sample IDs
@@ -871,8 +881,8 @@ def main():
     parser.add_argument('--track_spacing', type=float, default=0.5, help='Spacing between tracks (in inches).')
     
     # New Argument for Normalization Method
-    parser.add_argument('--normalization_method', type=str, default='raw', choices=['raw', 'LogNorm','log2', 'log2_add1','log','log_add1'],
-                        help="Method for normalization: 'raw', 'LogNorm','log2', 'log2_add1', 'log', or 'log_add1'.")
+    parser.add_argument('--normalization_method', type=str, default='raw', choices=['raw', 'logNorm','log2', 'log2_add1','log','log_add1'],
+                        help="Method for normalization: 'raw', 'logNorm','log2', 'log2_add1', 'log', or 'log_add1'.")
     # Loop file arguments
     parser.add_argument('--loop_file_sample1', type=str, help='Path to the chromatin loop file for sample 1.', default=None)
     parser.add_argument('--loop_file_sample2', type=str, help='Path to the chromatin loop file for sample 2.', default=None)

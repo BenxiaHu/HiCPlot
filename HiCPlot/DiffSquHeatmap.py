@@ -382,38 +382,38 @@ def plot_heatmaps(
     data_diff = None  # Initialize
 
     if operation == 'subtract':
+        np.isnan(data1)] = 0
+        np.isnan(data2)] = 0
         data_diff = data1 - data2
     elif operation == 'divide':
         if division_method == 'raw':
             # Raw division
             with np.errstate(divide='ignore', invalid='ignore'):
-                data1 = np.maximum(data1, 1e-10)
-                data2 = np.maximum(data2, 1e-10)
+                data1 = np.maximum(data1, 0)
+                data2 = np.maximum(data2, 0)
                 data_diff = np.divide(data1, data2)
                 data_diff[~np.isfinite(data_diff)] = 0  # Replace inf and NaN with 0
-        elif division_method == 'log2':
-            # Log2(case / control)
-            with np.errstate(divide='ignore', invalid='ignore'):
-                data1 = np.maximum(data1, 1e-10)
-                data2 = np.maximum(data2, 1e-10)
-                ratio = np.divide(data1, data2)
-                ratio[ratio <= 0] = np.nan  # Avoid log2 of non-positive numbers
-                data_diff = np.log2(ratio)
         elif division_method == 'add1':
             # (case +1) / (control +1)
             with np.errstate(divide='ignore', invalid='ignore'):
-                data1 = np.maximum(data1, 1e-10)
-                data2 = np.maximum(data2, 1e-10)
+                data1 = np.maximum(data1, 0)
+                data2 = np.maximum(data2, 0)
                 data_diff = np.divide(data1 + 1, data2 + 1)
-                data_diff[~np.isfinite(data_diff)] = 0
+        elif division_method == 'log2':
+            # Log2(case / control)
+            with np.errstate(divide='ignore', invalid='ignore'):
+                data1 = np.maximum(data1, 0)
+                data2 = np.maximum(data2, 0)
+                ratio = np.divide(data1, data2)
+                bad = (ratio <= 0) | (~np.isfinite(ratio))
+                ratio[bad] = np.nan  # Avoid log2 of non-positive numbers
+                data_diff = np.log2(ratio)
         elif division_method == 'log2_add1':
             # log2((case +1) / (control +1))
             with np.errstate(divide='ignore', invalid='ignore'):
-                data1 = np.maximum(data1, 1e-10)
-                data2 = np.maximum(data2, 1e-10)
-                ratio = np.divide(data1 + 1, data2 + 1)
-                ratio[ratio <= 0] = np.nan
-                data_diff = np.log2(ratio)
+                data1 = np.maximum(data1, 0)
+                data2 = np.maximum(data2, 0)
+                data_diff = np.log2(data1 + 1, data2 + 1)
         else:
             raise ValueError("Invalid division_method. Choose among 'raw', 'log2', 'add1', 'log2_add1'.")
     else:
@@ -576,9 +576,9 @@ def main():
     parser.add_argument('--chrid', type=str, required=True, help='Chromosome ID.')
 
     # Optional arguments
-    parser.add_argument('--cmap', type=str, default='autumn_r', help='Colormap to be used for plotting other tracks.')
-    parser.add_argument('--vmin', type=float, default=None, help='Minimum value for normalization of other tracks.')
-    parser.add_argument('--vmax', type=float, default=None, help='Maximum value for normalization of other tracks.')
+    parser.add_argument('--cmap', type=str, default='autumn_r', help='Colormap to be used for the combined heatmap.')
+    parser.add_argument('--vmin', type=float, default=None, help='Minimum value for normalization of the combined heatmap.')
+    parser.add_argument('--vmax', type=float, default=None, help='Maximum value for normalization of the combined heatmap.')
     parser.add_argument('--output_file', type=str, default='comparison_heatmap.pdf', help='Filename for the saved comparison heatmap PDF.')
 
     # BigWig arguments
