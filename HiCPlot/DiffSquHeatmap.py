@@ -13,9 +13,10 @@ import matplotlib.gridspec as gridspec
 from matplotlib.patches import Arc
 from collections import defaultdict
 
-dir = os.path.dirname(os.path.abspath(__file__))
-version_py = os.path.join(dir, "_version.py")
-exec(open(version_py).read())
+script_dir = os.path.dirname(os.path.abspath(__file__))
+version_py = os.path.join(script_dir, "_version.py")
+with open(version_py) as _vf:
+    exec(_vf.read())
 
 def plot_genes(ax, gtf_file, region, genes_to_annotate=None, color='blue', track_height=1):
     """
@@ -339,7 +340,7 @@ def plot_heatmaps(
     loop_file_sample1=None, loop_file_sample2=None,
     gtf_file=None, resolution=None,
     start=None, end=None, chrid=None,
-    cmap='autumn_r', vmin=None, vmax=None,
+    vmin=None, vmax=None,
     track_min=None,track_max=None,
     output_file='comparison_heatmap.pdf',
     bigwig_files_sample2=[], bigwig_labels_sample2=[], colors_sample2="blue",
@@ -374,7 +375,7 @@ def plot_heatmaps(
     if format == "balance":
         data2 = clr2.matrix(balance=True).fetch(region).astype(float)
     elif format == "ICE":
-            data2 = clr2.matrix(balance=False).fetch(region).astype(float)
+        data2 = clr2.matrix(balance=False).fetch(region).astype(float)
     else:
         print("input format is wrong")
 
@@ -382,8 +383,8 @@ def plot_heatmaps(
     data_diff = None  # Initialize
 
     if operation == 'subtract':
-        np.isnan(data1)] = 0
-        np.isnan(data2)] = 0
+        data1[np.isnan(data1)] = 0
+        data2[np.isnan(data2)] = 0
         data_diff = data1 - data2
     elif operation == 'divide':
         if division_method == 'raw':
@@ -399,6 +400,7 @@ def plot_heatmaps(
                 data1 = np.maximum(data1, 0)
                 data2 = np.maximum(data2, 0)
                 data_diff = np.divide(data1 + 1, data2 + 1)
+                data_diff[~np.isfinite(data_diff)] = 0  # Replace inf and NaN with 0
         elif division_method == 'log2':
             # Log2(case / control)
             with np.errstate(divide='ignore', invalid='ignore'):
@@ -409,25 +411,26 @@ def plot_heatmaps(
                 ratio[bad] = np.nan  # Avoid log2 of non-positive numbers
                 data_diff = np.log2(ratio)
         elif division_method == 'log2_add1':
-            # log2((case +1) / (control +1))
             with np.errstate(divide='ignore', invalid='ignore'):
                 data1 = np.maximum(data1, 0)
                 data2 = np.maximum(data2, 0)
-                data_diff = np.log2(data1 + 1, data2 + 1)
+                ratio = np.divide(data1 + 1, data2 + 1)
+                ratio[~np.isfinite(ratio)] = np.nan
+                data_diff = np.log2(ratio)
         else:
             raise ValueError("Invalid division_method. Choose among 'raw', 'log2', 'add1', 'log2_add1'.")
     else:
         raise ValueError("Invalid operation. Choose 'subtract' or 'divide'.")
 
     # Determine color limits for difference heatmap
-    if data_diff is not None:
-        # Manually set symmetric vmin and vmax based on the maximum absolute value
-        max_abs = np.nanmax(np.abs(data_diff))
-        vmin_diff = -max_abs
-        vmax_diff = max_abs
-    else:
-        vmin_diff = None
-        vmax_diff = None
+    # Colour limits
+    if vmin is None and vmax is None:
+        vmin = np.nanmin(data_diff)
+        vmax = np.nanmax(data_diff)
+    elif vmin is None:
+        vmin = np.nanmin(data_diff)
+    elif vmax is None:
+        vmax = np.nanmax(data_diff)
 
     # Define GridSpec for vertical layout
     # Layout:
@@ -471,7 +474,7 @@ def plot_heatmaps(
 
     # Plot Difference Heatmap
     ax_diff = f.add_subplot(gs[0, 0])
-    im_diff = pcolormesh_square(ax_diff, data_diff, region[1], region[2], cmap=diff_cmap, vmin=vmin_diff, vmax=vmax_diff)
+    im_diff = pcolormesh_square(ax_diff, data_diff, region[1], region[2], cmap=diff_cmap, vmin=vmin, vmax=vmax)
     # Format x-axis ticks
     ax_diff.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, pos: f'{x / 1e6:.2f}'))
     ax_diff.set_title(diff_title if diff_title else "Difference Heatmap", fontsize=8)
@@ -563,7 +566,7 @@ def plot_heatmaps(
     f.savefig(output_file, bbox_inches='tight')
     plt.close(f)
 
-def main():
+def main(argv=None): 
     parser = argparse.ArgumentParser(description='Plot difference heatmap from cooler files with BigWig, BED tracks, gene annotations, and chromatin loops.')
 
     # Required arguments
@@ -576,7 +579,6 @@ def main():
     parser.add_argument('--chrid', type=str, required=True, help='Chromosome ID.')
 
     # Optional arguments
-    parser.add_argument('--cmap', type=str, default='autumn_r', help='Colormap to be used for the combined heatmap.')
     parser.add_argument('--vmin', type=float, default=None, help='Minimum value for normalization of the combined heatmap.')
     parser.add_argument('--vmax', type=float, default=None, help='Maximum value for normalization of the combined heatmap.')
     parser.add_argument('--output_file', type=str, default='comparison_heatmap.pdf', help='Filename for the saved comparison heatmap PDF.')
@@ -599,7 +601,7 @@ def main():
     parser.add_argument('--loop_file_sample1', type=str, required=False, help='Path to the chromatin loop file for sample1.', default=None)
     parser.add_argument('--loop_file_sample2', type=str, required=False, help='Path to the chromatin loop file for sample2.', default=None)
 
-    # New Arguments for Division Methods and Color Mapping
+    # Arguments for Division Methods and Color Mapping
     parser.add_argument('--operation', type=str, default='subtract', choices=['subtract', 'divide'],
                         help="Operation to compute the difference matrix: 'subtract' (case - control) or 'divide' (case / control).")
     parser.add_argument('--division_method', type=str, default='raw', choices=['raw', 'log2', 'add1', 'log2_add1'],
@@ -636,7 +638,6 @@ def main():
     start=args.start,
     end=args.end,
     chrid=args.chrid,
-    cmap=args.cmap,
     vmin=args.vmin,
     vmax=args.vmax,
     track_min=args.track_min,

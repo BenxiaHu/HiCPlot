@@ -5,35 +5,32 @@ version_py = "HiCPlot/_version.py"
 exec(open(version_py).read())
 
 setup(
-    name="hicplot", # Replace with your own username
+    name="hicplot",
     version=__version__,
     author="Benxia Hu",
     author_email="hubenxia@gmail.com",
-    description="plot heatmaps from Hi-C matrix and tracks from bigwig files",
-    long_description="plot heatmaps from Hi-C matrix and tracks from bigwig files",
-    url="https://pypi.org/project/HiCPlot/",
-    entry_points = {
-        "console_scripts": ['TriHeatmap = HiCPlot.TriHeatmap:main',
-                            'SquHeatmap = HiCPlot.SquHeatmap:main',
-                            'NGStrack= HiCPlot.NGStrack:main',
-                            'DiffSquHeatmap= HiCPlot.DiffSquHeatmap:main',
-                            'upper_lower_triangle_heatmap= HiCPlot.upper_lower_triangle_heatmap:main']
-        },
-    python_requires = '>=3.12',
-    packages = ['HiCPlot'],
-    install_requires = [
-        'numpy',
-        'pandas',
-        'argparse',
-        'matplotlib',
-        'pyBigWig',
-        'pyranges',
-        'cooler',
+    description="Plot Hi-C heatmaps and genomic tracks.",
+    long_description="Plot heatmaps from Hi-C contact matrices and tracks from bigWig files.",
+    url="https://github.com/BenxiaHu/HiCPlot",
+    packages=find_packages(),             # auto-discover HiCPlot package
+    python_requires=">=3.8",              # relax unless 3.12 really required
+    install_requires=[
+        "numpy",
+        "pandas",
+        "matplotlib",
+        "pyBigWig",
+        "pyranges",
+        "cooler",
     ],
-    classifiers=(
+    entry_points={
+        "console_scripts": [
+            "HiCPlot = HiCPlot.Cli:main",  # dotted path must match the real file
+        ],
+    },
+    classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
-    ),
-    zip_safe = False,
-  )
+    ],
+    zip_safe=False,
+)

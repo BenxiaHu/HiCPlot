@@ -9,9 +9,10 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from collections import defaultdict
 
-dir = os.path.dirname(os.path.abspath(__file__))
-version_py = os.path.join(dir, "_version.py")
-exec(open(version_py).read())
+script_dir = os.path.dirname(os.path.abspath(__file__))
+version_py = os.path.join(script_dir, "_version.py")
+with open(version_py) as _vf:
+    exec(_vf.read())
 
 def get_track_min_max(bigwig_files_sample1, bigwig_labels_sample1,
                       bigwig_files_sample2, bigwig_labels_sample2,
@@ -480,7 +481,7 @@ def plot_tracks(
     plt.close(f)
 
 
-def main():
+def main(argv=None): 
     parser = argparse.ArgumentParser(description='Plot BigWig, BED, and GTF tracks with customizable layout.')
 
     # Required BigWig files for Sample1

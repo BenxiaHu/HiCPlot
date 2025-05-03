@@ -7,7 +7,7 @@ the format of input file is cool format.
 the output file is heatmaps and genome tracks.  
 #### usage:
 ``` 
-    SquHeatmap \
+    HiCPlot SquHeatmap \
     --cooler_file1 "Sample1.mcool" \
     --cooler_file2 "Sample2.mcool" \
     --bigwig_files_sample1 "Sample1_RNAseq.bw" "Sample1_ChIPseq.bw" \
@@ -36,7 +36,7 @@ the output file is heatmaps and genome tracks.
 #### plot triangle heatmaps for individual/two Hi-C contact matrices
 #### usage: 
 ``` 
-    TriHeatmap \
+    HiCPlot TriHeatmap \
     --cooler_file1 "Sample1.mcool" \
     --cooler_file2 "Sample2.mcool" \
     --bigwig_files_sample1 "Sample1_RNAseq.bw" "Sample1_ChIPseq.bw" \
@@ -66,7 +66,7 @@ the format of input file is cool format.
 the output file is heatmaps and genome tracks.
 #### usage:
 ```
-    upper_lower_triangle_heatmap \
+    HiCPlot upper_lower_triangle_heatmap \
     --cooler_file1 "Sample1.mcool" \
     --cooler_file2 "Sample2.mcool" \
     --sampleid1 Sample1 \
@@ -98,7 +98,7 @@ the format of input file is cool format.
 the output file is heatmaps and genome tracks.  
 #### usage:
 ``` 
-    DiffSquHeatmap \
+    HiCPlot DiffSquHeatmap \
     --cooler_file1 "Sample1.mcool" \
     --cooler_file2 "Sample2.mcool" \
     --bigwig_files_sample1 "Sample1_RNAseq.bw" "Sample1_ChIPseq.bw" \
@@ -128,7 +128,7 @@ the output file is heatmaps and genome tracks.
 #### plot genomic tracks based on bigwig files
 #### usage: 
 ``` 
-    NGStrack \
+    HiCPlot NGStrack \
     --chrid "chr16" --start 67500000 --end 67700000 \
     --layout 'horizontal' \
     --track_width 4 \
@@ -159,7 +159,7 @@ matplotlib
 pyBigWig  
 pyranges  
 
-#### pip install HiCPlot==1.29
-https://pypi.org/project/HiCPlot/1.29/
+#### pip install HiCPlot==1.39
+https://pypi.org/project/HiCPlot/1.39/
 
 

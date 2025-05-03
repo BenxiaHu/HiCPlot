@@ -18,9 +18,10 @@ import matplotlib.colors as mcolors
 from matplotlib.patches import Arc
 from collections import defaultdict
 
-dir = os.path.dirname(os.path.abspath(__file__))
-version_py = os.path.join(dir, "_version.py")
-exec(open(version_py).read())
+script_dir = os.path.dirname(os.path.abspath(__file__))
+version_py = os.path.join(script_dir, "_version.py")
+with open(version_py) as _vf:
+    exec(_vf.read())
 
 def plot_genes(ax, gtf_file, region, genes_to_annotate=None, color='blue', track_height=1):
     """
@@ -410,7 +411,7 @@ def plot_heatmaps(cooler_file1, sampleid1=None,format="balance",
         normalized_data2 = data2 if not single_sample else None
     elif normalization_method == 'logNorm':
         normalized_data1 = np.maximum(data1, 0)
-        if not single_sample
+        if not single_sample:
             normalized_data2 = np.maximum(data2, 0)
     elif normalization_method == 'log2':
         normalized_data1 = np.log2(data1)
@@ -603,7 +604,7 @@ def plot_heatmaps(cooler_file1, sampleid1=None,format="balance",
     f.savefig(output_file, bbox_inches='tight')
     plt.close(f)
 
-def main():
+def main(argv=None): 
     parser = argparse.ArgumentParser(description='Plot combined Hi-C heatmap from two cooler files with BigWig, BED tracks, gene annotations, and chromatin loops.')
 
     # Required arguments

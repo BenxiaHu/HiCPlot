@@ -15,9 +15,10 @@ import matplotlib.colors as mcolors
 from matplotlib.patches import Arc
 from collections import defaultdict
 
-dir = os.path.dirname(os.path.abspath(__file__))
-version_py = os.path.join(dir, "_version.py")
-exec(open(version_py).read())
+script_dir = os.path.dirname(os.path.abspath(__file__))
+version_py = os.path.join(script_dir, "_version.py")
+with open(version_py) as _vf:
+    exec(_vf.read())
 
 def plot_genes(ax, gtf_file, region, genes_to_annotate=None, color='blue', track_height=1):
     """
@@ -833,10 +834,7 @@ def plot_heatmaps(cooler_file1, sampleid1,format="balance",
     f.savefig(output_file, bbox_inches='tight')
     plt.close(f)
 
-def main():
-    """
-    Main function to parse command-line arguments and initiate plotting.
-    """
+def main(argv=None): 
     parser = argparse.ArgumentParser(description='Plot triangle heatmaps from cooler files with optional BigWig, BED, and GTF annotations.')
     # Required Hi-C matrix
     parser.add_argument('--cooler_file1', type=str, required=True, help='Path to the first .mcool file.')
