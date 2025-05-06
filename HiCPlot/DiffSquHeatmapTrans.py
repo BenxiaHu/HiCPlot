@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import sys
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
@@ -127,7 +127,9 @@ def plot_trans_diff(cooler_file1, cooler_file2,
     plt.close(f)
 
 
-def main(argv=None): 
+def main(argv: list[str] | None = None):
+    if argv is None:
+        argv = sys.argv[1:]
     parser = argparse.ArgumentParser(description='Plot the difference between two Cooler files for a trans region.')
     parser.add_argument('--cooler_file1', type=str, required=True, help='Path to the case .mcool file.')
     parser.add_argument('--cooler_file2', type=str, required=True, help='Path to the control .mcool file.')
@@ -154,7 +156,7 @@ def main(argv=None):
     parser.add_argument('--vmax', type=float, default=None, help='Maximum value for normalization of the combined heatmap.')
     parser.add_argument('--output_file', default='comparison_heatmap.pdf',help='Filename for the saved comparison heatmap PDF.')
     parser.add_argument('-V', '--version', action='version',version=f"trans_diff_heatmap {__version__}")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     plot_trans_diff(cooler_file1=args.cooler_file1,
                     cooler_file2=args.cooler_file2,

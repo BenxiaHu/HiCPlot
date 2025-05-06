@@ -13,7 +13,7 @@ setup(
     long_description="Plot heatmaps from Hi-C contact matrices and tracks from bigWig files.",
     url="https://github.com/BenxiaHu/HiCPlot",
     packages=find_packages(),             # auto-discover HiCPlot package
-    python_requires=">=3.8",              # relax unless 3.12 really required
+    python_requires=">=3.12",              # relax unless 3.12 really required
     install_requires=[
         "numpy",
         "pandas",

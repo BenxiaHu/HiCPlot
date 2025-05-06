@@ -791,7 +791,9 @@ def plot_heatmaps(cooler_file1, sampleid1=None,format="balance",
     plt.close(f)
 
 
-def main(argv=None): 
+def main(argv: list[str] | None = None):
+    if argv is None:
+        argv = sys.argv[1:]
     parser = argparse.ArgumentParser(description='Plot heatmaps from cooler files.')
     parser.add_argument('--cooler_file1', type=str, required=True, help='Path to the first .cool or .mcool file.')
     parser.add_argument('--cooler_file2', type=str, required=False, help='Path to the second .cool or .mcool file.', default=None)
@@ -841,7 +843,7 @@ def main(argv=None):
                       ,help="Print version and exit")
     parser.add_argument('--track_min', type=float, default=None, help='Global minimum value for all BigWig tracks.')
     parser.add_argument('--track_max', type=float, default=None, help='Global maximum value for all BigWig tracks.')
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     # Call the plotting function
     plot_heatmaps(
         cooler_file1=args.cooler_file1,

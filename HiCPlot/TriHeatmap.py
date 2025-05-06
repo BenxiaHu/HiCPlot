@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import argparse
 import os
+import sys
 import pandas as pd
 from matplotlib.colors import LogNorm
 import pyBigWig

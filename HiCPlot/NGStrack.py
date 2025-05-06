@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from collections import defaultdict
+import sys
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 version_py = os.path.join(script_dir, "_version.py")
@@ -481,7 +482,9 @@ def plot_tracks(
     plt.close(f)
 
 
-def main(argv=None): 
+def main(argv: list[str] | None = None):
+    if argv is None:
+        argv = sys.argv[1:]
     parser = argparse.ArgumentParser(description='Plot BigWig, BED, and GTF tracks with customizable layout.')
 
     # Required BigWig files for Sample1
@@ -530,7 +533,7 @@ def main(argv=None):
                         help="Layout of the tracks: 'horizontal' or 'vertical'.")
     parser.add_argument("-V", "--version", action="version",version="NGStrack {}".format(__version__)\
                       ,help="Print version and exit")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # Call plot_tracks with the parsed arguments
     plot_tracks(

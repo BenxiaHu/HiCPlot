@@ -8,6 +8,7 @@ import matplotlib.gridspec as gridspec
 from matplotlib.ticker import EngFormatter
 from matplotlib.colors import LogNorm
 from collections import defaultdict
+import sys
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 version_py = os.path.join(script_dir, "_version.py")
@@ -307,7 +308,9 @@ def plot_heatmaps(cooler_file1, sampleid1=None, format="balance",
     plt.close(fig)
 
 
-def main(argv=None): 
+def main(argv: list[str] | None = None):
+    if argv is None:
+        argv = sys.argv[1:]
     parser = argparse.ArgumentParser(description='Plot heatmaps from cooler files in the same or different chromosomes.')
 
     parser.add_argument('--cooler_file1', type=str, required=True, help='Path to the first .cool or .mcool file.')
@@ -337,7 +340,7 @@ def main(argv=None):
     parser.add_argument('--track_max', type=float, default=None, help='Global maximum value for all tracks.')
     parser.add_argument('-V', '--version', action='version', version='SquHeatmap 1.0.0', help='Print version and exit')
     
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # Call the plotting function
     plot_heatmaps(

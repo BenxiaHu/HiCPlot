@@ -604,7 +604,9 @@ def plot_heatmaps(cooler_file1, sampleid1=None,format="balance",
     f.savefig(output_file, bbox_inches='tight')
     plt.close(f)
 
-def main(argv=None): 
+def main(argv: list[str] | None = None):
+    if argv is None:
+        argv = sys.argv[1:]
     parser = argparse.ArgumentParser(description='Plot combined Hi-C heatmap from two cooler files with BigWig, BED tracks, gene annotations, and chromatin loops.')
 
     # Required arguments
@@ -659,7 +661,7 @@ def main(argv=None):
     parser.add_argument('--title', type=str, nargs='*', help='title of the heatmap.', default=None)
     parser.add_argument("-V", "--version", action="version",version="SquHeatmap {}".format(__version__)\
                       ,help="Print version and exit")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
 # Call the plotting function
     plot_heatmaps(

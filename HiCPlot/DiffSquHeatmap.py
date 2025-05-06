@@ -12,6 +12,7 @@ from matplotlib.ticker import EngFormatter
 import matplotlib.gridspec as gridspec
 from matplotlib.patches import Arc
 from collections import defaultdict
+import sys
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 version_py = os.path.join(script_dir, "_version.py")
@@ -566,7 +567,9 @@ def plot_heatmaps(
     f.savefig(output_file, bbox_inches='tight')
     plt.close(f)
 
-def main(argv=None): 
+def main(argv: list[str] | None = None):
+    if argv is None:
+        argv = sys.argv[1:]
     parser = argparse.ArgumentParser(description='Plot difference heatmap from cooler files with BigWig, BED tracks, gene annotations, and chromatin loops.')
 
     # Required arguments
@@ -619,7 +622,7 @@ def main(argv=None):
     parser.add_argument('--genes_to_annotate', type=str, nargs='*', help='Gene names to annotate.', default=None)
     parser.add_argument("-V", "--version", action="version",version="DiffSquHeatmap {}".format(__version__)\
                       ,help="Print version and exit")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # Call the plot_heatmaps function with the parsed arguments
     plot_heatmaps(
