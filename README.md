@@ -1,7 +1,25 @@
 # HiCPlot  
 
 ### HiCPlot can be used to plot square and triangle heatmaps from Hi-C matrices and tracks from bigwig files.  
+#### usage:
+``` HiCPlot [-h] <tool> ...
+```
+#### Hi‑C plotting utility (wrapper for individual tools)
 
+options:
+  -h, --help            show this help message and exit
+
+Available tools:
+  <tool>
+    SquHeatmap          Square intra‑chromosomal heatmap
+    SquHeatmapTrans     Square inter‑chromosomal heatmap
+    TriHeatmap          Triangular intra‑chromosomal heatmap
+    DiffSquHeatmap      Differential square heatmap
+    DiffSquHeatmapTrans
+                        Differential square inter‑heatmap
+    upper_lower_triangle_heatmap
+                        Split‑triangle heatmap (upper vs lower)
+    NGStrack            Plot multiple NGS tracks
 #### plot square heatmaps for individual/two Hi-C contact matrices
 the format of input file is cool format.  
 the output file is heatmaps and genome tracks.  
