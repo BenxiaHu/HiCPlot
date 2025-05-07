@@ -11,7 +11,7 @@ options:
   -h, --help            show this help message and exit  
 
 Available tools: 
-|  |   |
+| Function | Description |
 |:----:|:-----:|  
 | SquHeatmap | Square intra‑chromosomal heatmap |
 | SquHeatmapTrans | Square inter‑chromosomal heatmap | 
