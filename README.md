@@ -11,6 +11,7 @@ options:
   -h, --help            show this help message and exit  
 
 Available tools: 
+|  |   |
 |:----:|:-----:|  
 | SquHeatmap | Square intra‑chromosomal heatmap |
 | SquHeatmapTrans | Square inter‑chromosomal heatmap | 
@@ -18,7 +19,8 @@ Available tools:
 | DiffSquHeatmap | Differential square heatmap |
 | DiffSquHeatmapTrans | Differential square inter‑heatmap |
 | upper_lower_triangle_heatmap | Split‑triangle heatmap (upper vs lower) |
-| NGStrack | Plot multiple NGS tracks |  
+| NGStrack | Plot multiple NGS tracks |
+
 #### plot square heatmaps for individual/two Hi-C contact matrices
 the format of input file is cool format.  
 the output file is heatmaps and genome tracks.  
