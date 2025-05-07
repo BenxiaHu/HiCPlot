@@ -10,8 +10,9 @@
 options:  
   -h, --help            show this help message and exit  
 
-Available tools: 
-| SquHeatmap |  |Square intra‑chromosomal heatmap |
+Available tools:  
+|:----:|:-----:|
+| SquHeatmap | Square intra‑chromosomal heatmap |
     SquHeatmap                   Square intra‑chromosomal heatmap  
     SquHeatmapTrans              Square inter‑chromosomal heatmap  
     TriHeatmap                   Triangular intra‑chromosomal heatmap  
