@@ -791,7 +791,7 @@ def plot_heatmaps(cooler_file1, sampleid1=None,format="balance",
     plt.close(f)
 
 
-def main(argv: list[str] | None = None):
+def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
     parser = argparse.ArgumentParser(description='Plot heatmaps from cooler files.')
@@ -799,10 +799,10 @@ def main(argv: list[str] | None = None):
     parser.add_argument('--cooler_file2', type=str, required=False, help='Path to the second .cool or .mcool file.', default=None)
     parser.add_argument('--format', type=str, default='balance', choices=['balance', 'ICE'], help='Format of .mcool file.')
 
-    parser.add_argument('--resolution', type=int, default=10000, help='Resolution for the cooler data.')
-    parser.add_argument('--start', type=int, default=10500000, help='Start position for the region of interest.')
-    parser.add_argument('--end', type=int, default=13200000, help='End position for the region of interest.')
-    parser.add_argument('--chrid', type=str, default='chr2', help='Chromosome ID.')
+    parser.add_argument('--resolution', type=int, help='Resolution for the cooler data.')
+    parser.add_argument('--start', type=int, help='Start position for the region of interest.')
+    parser.add_argument('--end', type=int, help='End position for the region of interest.')
+    parser.add_argument('--chrid', type=str, help='Chromosome ID.')
     parser.add_argument('--cmap', type=str, default='autumn_r', help='Colormap to be used for plotting.')
     parser.add_argument('--vmin', type=float, default=None, help='Minimum value for Hi-C matrix.')
     parser.add_argument('--vmax', type=float, default=None, help='Maximum value for Hi-C matrix.')

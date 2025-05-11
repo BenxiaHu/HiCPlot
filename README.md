@@ -178,7 +178,7 @@ matplotlib
 pyBigWig  
 pyranges  
 
-#### pip install hicplot==1.47
-https://pypi.org/project/hicplot/1.47/
+#### pip install hicplot==1.49
+https://pypi.org/project/hicplot/1.49/
 
 

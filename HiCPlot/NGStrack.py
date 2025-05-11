@@ -482,7 +482,7 @@ def plot_tracks(
     plt.close(f)
 
 
-def main(argv: list[str] | None = None):
+def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
     parser = argparse.ArgumentParser(description='Plot BigWig, BED, and GTF tracks with customizable layout.')
