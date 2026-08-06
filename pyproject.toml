@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hicplot"
-version = "1.5.0"
+version = "1.5.1"
 description = "plot heatmaps from Hi-C matrix and tracks from bigwig files"
 authors = [
   { name = "Benxia Hu", email = "hubenxia@gmail.com" }
@@ -26,6 +26,7 @@ dependencies = [
 Homepage = "https://pypi.org/project/hicplot/"
 
 [project.scripts]
+HiCPlot = "HiCPlot.Cli:main"
 TriHeatmap = "HiCPlot.TriHeatmap:main"
 SquHeatmap = "HiCPlot.SquHeatmap:main"
 NGStrack = "HiCPlot.NGStrack:main"
