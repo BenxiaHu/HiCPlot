@@ -178,8 +178,8 @@ matplotlib
 pyBigWig  
 pyranges  
 
-#### pip install hicplot==1.5.1
-https://pypi.org/project/hicplot/1.51/
+#### pip install hicplot==1.5.2
+https://pypi.org/project/hicplot/1.5.2/
 
 #### Reference
 1. Sickle cell disease induces chromatin introversion and ferroptosis in CD8+ T cells to suppress anti-tumor immunity (https://www.cell.com/immunity/fulltext/S1074-7613(25)00183-9)

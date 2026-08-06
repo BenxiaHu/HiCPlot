@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hicplot"
-version = "1.5.1"
+version = "1.5.2"
 description = "plot heatmaps from Hi-C matrix and tracks from bigwig files"
 authors = [
   { name = "Benxia Hu", email = "hubenxia@gmail.com" }
