@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from collections import defaultdict
 import sys
+from matplotlib import rcParams
+rcParams['font.family'] = 'DejaVu Sans'
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 version_py = os.path.join(script_dir, "_version.py")

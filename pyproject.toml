@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hicplot"
-version = "1.2.2"
+version = "1.5.0"
 description = "plot heatmaps from Hi-C matrix and tracks from bigwig files"
 authors = [
   { name = "Benxia Hu", email = "hubenxia@gmail.com" }
@@ -30,4 +30,6 @@ TriHeatmap = "HiCPlot.TriHeatmap:main"
 SquHeatmap = "HiCPlot.SquHeatmap:main"
 NGStrack = "HiCPlot.NGStrack:main"
 DiffSquHeatmap = "HiCPlot.DiffSquHeatmap:main"
+SquHeatmapTrans = "HiCPlot.SquHeatmapTrans:main"
 upper_lower_triangle_heatmap = "HiCPlot.upper_lower_triangle_heatmap:main"
+DiffSquHeatmapTrans = "HiCPlot.DiffSquHeatmapTrans:main"

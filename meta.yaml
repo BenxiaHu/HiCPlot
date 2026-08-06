@@ -1,10 +1,10 @@
 package:
   name: hicplot
-  version: 1.19
+  version: 1.50
 
 source:
-  url: https://files.pythonhosted.org/packages/cf/ec/002fc4f17a90dc9c8e01ff580af872b2f6db7ce3c1126c2d6ea58e7dbe91/hicplot-1.19.tar.gz
-  md5: 29d242c4ebccbc8b21b03bd47bd6bc25
+  url: https://files.pythonhosted.org/packages/ff/5d/56b541dfb3cd046d782ec386637de24a2bda219e3149c1447ade1f3aa8e3/hicplot-1.5.0.tar.gz
+  md5: 6e968c4067b2cb3770285e672cba196e
 
 build:
   number: 0

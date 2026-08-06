@@ -17,6 +17,8 @@ import matplotlib.gridspec as gridspec
 import matplotlib.colors as mcolors
 from matplotlib.patches import Arc
 from collections import defaultdict
+from matplotlib import rcParams
+rcParams['font.family'] = 'DejaVu Sans'
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 version_py = os.path.join(script_dir, "_version.py")

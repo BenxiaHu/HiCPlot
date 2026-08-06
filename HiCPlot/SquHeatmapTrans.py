@@ -7,6 +7,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import LogNorm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from matplotlib.ticker import FuncFormatter, MaxNLocator
+from matplotlib import rcParams
+rcParams['font.family'] = 'DejaVu Sans'
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 version_py = os.path.join(script_dir, "_version.py")
@@ -53,17 +56,18 @@ def _normalise(mat, method):
     if mat is None:
         return None
     mat = mat.astype(float)
+    mat = np.nan_to_num(mat, nan=0.0, posinf=0.0, neginf=0.0)
     if method == "raw":
         return mat
     if method == "logNorm":
-        return np.maximum(mat, 0)
+        return np.where(mat > 0, mat, 1e-9)
     with np.errstate(divide="ignore", invalid="ignore"):
         if method == "log2":
-            return np.log2(np.where(mat > 0, mat, np.nan))
+            return np.log2(np.where(mat > 0, mat, 1e-9))
         if method == "log2_add1":
             return np.log2(mat + 1)
         if method == "log":
-            return np.log(np.where(mat > 0, mat, np.nan))
+            return np.log(np.where(mat > 0, mat, 1e-9))
         if method == "log_add1":
             return np.log(mat + 1)
     raise ValueError(f"Unsupported normalisation: {method}")
@@ -89,7 +93,13 @@ def plot_heatmaps(cooler_file1,resolution,chrid1,chrid2,start1,end1,
         except Exception as e:
             sys.exit(f"Error loading {cooler_file2}: {e}")
 
-    use_balance = format == "balance"
+    if format in ("balance", "ICE", True):
+        balance_arg = True
+    elif format in ("raw", "none", "False", False, None):
+        balance_arg = False
+    else:
+        # allow passing a specific weights column name, e.g. "weight"
+        balance_arg = format
 
     if merge_axes:
         chrom_order = _parse_csv_list(chrid1)
@@ -98,58 +108,75 @@ def plot_heatmaps(cooler_file1,resolution,chrid1,chrid2,start1,end1,
         if any([start1, end1, start2, end2]):
             print("[warn] start/end ignored with --merge_axes; using whole chromosomes")
 
-        def build_canvas(clr, chromsizes):
+        def build_canvas(clr, chromsizes, balance_arg):
             if clr is None:
                 return None, None
             bins = [int(np.ceil(chromsizes[c] / resolution)) for c in chrom_order]
             edges = np.cumsum([0] + bins)
-            canvas = np.full((edges[-1], edges[-1]), np.nan)
-            fetch = clr.matrix(balance=use_balance, as_pixels=False)
+            canvas = np.full((edges[-1], edges[-1]), 1e-9)
+            fetch = clr.matrix(balance=balance_arg, as_pixels=False)
             for yi, cy in enumerate(chrom_order):
                 for xi, cx in enumerate(chrom_order):
                     block = fetch.fetch(cy, cx).astype(float)
                     # pad if last bin shorter than resolution
                     pad = (bins[yi] - block.shape[0], bins[xi] - block.shape[1])
                     if pad[0] or pad[1]:
-                        block = np.pad(block, ((0, pad[0]), (0, pad[1])), constant_values=np.nan)
+                        block = np.pad(block, ((0, pad[0]), (0, pad[1])), constant_values=1e-9)
                     y0, y1 = edges[yi], edges[yi + 1]
                     x0, x1 = edges[xi], edges[xi + 1]
                     canvas[y0:y1, x0:x1] = block
             return canvas, edges
 
-        mat1, edges = build_canvas(clr1, chromsizes1)
-        mat2, _ = build_canvas(clr2, chromsizes2) if clr2 else (None, None)
-
+        mat1, edges = build_canvas(clr1, chromsizes1, balance_arg)
+        mat2, _ = build_canvas(clr2, chromsizes2, balance_arg) if clr2 else (None, None)
         mats = [m for m in (mat1, mat2) if m is not None]
         mats_norm = [_normalise(m, normalization_method) for m in mats]
-
         finite = np.concatenate([m[np.isfinite(m) & (m > 0)] for m in mats_norm]) if mats_norm else np.array([])
         if finite.size:
-            vmin = np.nanmin(finite) if vmin is None else vmin
-            vmax = np.nanmax(finite) if vmax is None else vmax
+            if vmin is None:
+                vmin = np.nanmin(finite)
+            if vmax is None:
+                vmax = np.nanmax(finite)
         else:
-            vmin, vmax = 1e-9, 1.0
+            if vmin is None:
+                vmin = 1e-9
+            if vmax is None:
+                vmax = 1.0
 
         norm_obj = None
         if normalization_method == "logNorm":
             vmin = max(vmin, 1e-9)
             norm_obj = LogNorm(vmin=vmin, vmax=vmax, clip=True)
-            vmin = vmax = None
 
         figs = 1 if mat2 is None else 2
         fig_w = figs * track_size + (figs - 1) * track_spacing
         fig, axes = plt.subplots(1, figs, figsize=(min(fig_w, 40), track_size), squeeze=False)
 
         def show(ax, mat, title):
-            im = ax.imshow(np.ma.masked_invalid(mat), origin="upper", aspect="equal", cmap=cmap_name,
-                           norm=norm_obj, vmin=vmin, vmax=vmax)
+            if norm_obj is None:
+                im = ax.imshow(np.ma.masked_invalid(mat), origin="upper", aspect="equal",
+                            cmap=cmap_name, vmin=vmin, vmax=vmax)
+            else:
+                im = ax.imshow(np.ma.masked_invalid(mat), origin="upper", aspect="equal",
+                            cmap=cmap_name, norm=norm_obj)
             mids = [(edges[i] + edges[i + 1]) / 2 for i in range(len(chrom_order))]
             ax.set_xticks(mids)
             ax.set_xticklabels(chrom_order, rotation=90)
             ax.set_yticks(mids)
             ax.set_yticklabels(chrom_order)
-            ax.tick_params(axis="both", length=0, labelsize=8)
+            ax.tick_params(axis="both", which="major", length=0, labelsize=8)
+           # ---- chromosome boundary ticks (minor) + separator lines
+            bx = np.array(edges[1:-1]) - 0.5
+            by = np.array(edges[1:-1]) - 0.5
+
+            ax.set_xticks(bx, minor=True)
+            ax.set_yticks(by, minor=True)
+
+            # visible "boundary ticks" on both axes
+            ax.tick_params(axis="both", which="minor", length=6, width=0.8)
+
             ax.set_title(title, fontsize=9, pad=10)
+
             div = make_axes_locatable(ax)
             cax = div.append_axes("bottom", size="5%", pad=0.3)
             cb = plt.colorbar(im, cax=cax, orientation="horizontal")
@@ -202,9 +229,9 @@ def plot_heatmaps(cooler_file1,resolution,chrid1,chrid2,start1,end1,
             title = f"{r1_c} vs {r2_c} (whole)"
         titles.append(title)
 
+        use_balance = (format in ("balance", "ICE"))
         fetch1 = clr1.matrix(balance=use_balance, as_pixels=False)
-        mats1_raw.append(fetch1.fetch((r1_c, r1_s, r1_e), (r2_c, r2_s, r2_e)).astype(float))
-
+        mats1_raw.append(fetch1.fetch((r2_c, r2_s, r2_e), (r1_c, r1_s, r1_e)).astype(float))
         if not single_sample and clr2:
             fetch2 = clr2.matrix(balance=use_balance, as_pixels=False)
             mats2_raw.append(fetch2.fetch((r1_c, r1_s, r1_e), (r2_c, r2_s, r2_e)).astype(float))
@@ -214,17 +241,16 @@ def plot_heatmaps(cooler_file1,resolution,chrid1,chrid2,start1,end1,
 
     mats1 = [_normalise(m, normalization_method) for m in mats1_raw]
     mats2 = [_normalise(m, normalization_method) for m in mats2_raw] if mats2_raw else []
-
     finite = np.concatenate([m[np.isfinite(m) & (m > 0)] for m in mats1 + mats2])
     if finite.size:
         vmin = np.nanmin(finite) if vmin is None else vmin
         vmax = np.nanmax(finite) if vmax is None else vmax
     else:
-        vmin, vmax = 1e-12, 1.0
+        vmin, vmax = 1e-9, 1.0
 
     norm_obj = None
     if normalization_method == "logNorm":
-        vmin = max(vmin, 1e-12)
+        vmin = max(vmin, 1e-9)
         norm_obj = LogNorm(vmin=vmin, vmax=vmax, clip=True)
         vmin = vmax = None
 
@@ -243,11 +269,28 @@ def plot_heatmaps(cooler_file1,resolution,chrid1,chrid2,start1,end1,
                 ax.axis('off')
                 continue
             r1_c, r1_s, r1_e, r2_c, r2_s, r2_e = regions[ridx]
-            extent = (r2_s, r2_e, r1_e, r1_s)
-            mat = mat.T  # flip so x = chrid1, y = chrid2
-            im = ax.imshow(np.ma.masked_invalid(mat), origin='upper', aspect='equal', cmap=cmap_name,
-                           norm=norm_obj, vmin=vmin, vmax=vmax, extent=extent)
-            _format_ticks(ax)
+            bx = clr1.bins().fetch((r1_c, r1_s, r1_e))  # X bins
+            by = clr1.bins().fetch((r2_c, r2_s, r2_e))  # Y bins
+            x0 = int(bx["start"].iloc[0])
+            y0 = int(by["start"].iloc[0])
+
+            im = ax.imshow(
+                np.ma.masked_invalid(mat),
+                origin="upper",
+                aspect="equal",
+                cmap=cmap_name,
+                norm=norm_obj,
+                vmin=vmin, vmax=vmax,
+                interpolation="none",   # key: stop edge resampling artifacts
+            )
+
+            # ticks: bin index -> genomic Mb
+            ax.xaxis.set_major_locator(MaxNLocator(8))
+            ax.yaxis.set_major_locator(MaxNLocator(8))
+            ax.xaxis.set_major_formatter(FuncFormatter(lambda i, _: f"{(x0 + i*resolution)/1e6:.2f}"))
+            ax.yaxis.set_major_formatter(FuncFormatter(lambda i, _: f"{(y0 + i*resolution)/1e6:.2f}"))
+            ax.tick_params(axis="both", labelsize=8)
+
             ax.set_xlabel(r1_c, fontsize=8, labelpad=4)
             ax.set_ylabel(r2_c, fontsize=8, labelpad=4)
             label = sampleid1 if sidx == 0 else sampleid2
@@ -291,7 +334,7 @@ def main(argv=None):
     parser.add_argument('--output_file', type=str, default='heatmap.pdf', help='Filename for the saved comparison heatmap.')
 
     parser.add_argument('--merge_axes', action='store_true',help='Concatenate all chromosomes along both axes into one heat-map')
-    parser.add_argument("-V", "--version", action="version",version="SquHeatmap {}".format(__version__)\
+    parser.add_argument("-V", "--version", action="version",version="SquHeatmapTrans {}".format(__version__)\
                       ,help="Print version and exit")
     args = parser.parse_args(argv)
 
