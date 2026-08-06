@@ -124,8 +124,8 @@ def _plot_merge(diff, row_edges, col_edges, rows, cols,
     ax.set_yticks([(row_edges[i] + row_edges[i+1]) / 2 for i in range(len(rows))])
     ax.set_yticklabels(rows)
     ax.tick_params(axis="both", length=0, labelsize=8)
-    ax.set_xlabel(" / ".join(cols))
-    ax.set_ylabel(" / ".join(rows))
+    # ax.set_xlabel(" / ".join(cols))
+    # ax.set_ylabel(" / ".join(rows))
     ax.set_title(title, fontsize=10, pad=12)
 
     div = make_axes_locatable(ax)
